@@ -316,19 +316,19 @@ Party Panel is a Dutch panel study where determinants and beliefs underlying hea
 
 This document is the report of the Party Panel results. This is a living document and may be updated.
 
+This document is in English, except the section with prevention recommendations, because it is written specifically for Dutch prevention professionals.
+
 ### Behavior Change
 
 Party Panel was designed to inform development of effective behavior change interventions in the Dutch nightlife, to support a healthy, safe, fun nightlife where the personal integrity of its visitors is respected.
 
 Reading this report may require expertise regarding behavior change. Interested readers who as yet lack the required knowledge can use the Open Access (freely available) articles about behavior change that are available at https://effectivebehaviorchange.com.
 
-<!--
-### Ethics
+### Ethics and Full Disclosure
 
-Ethical approval was granted by the committee for Ethical Testing of Research (commissie Ethische Toetsing Onderzoek, cETO) of the Open University of the Netherlands, under file numberU2015/03757/HVM (the letter with approval is publicly available at http://partypanel.nl/files/cETO_U2015-03757-HVM.pdf).
--->
+Ethical approval for the Party Panel determinant studies was granted by the committee for Ethical Testing of Research (commissie Ethische Toetsing Onderzoek, cETO) of the Open University of the Netherlands, under files numbers U2015/03757/HVM and U2017/03081/FRO. The applications and approval letters are available at the Open Science Framework repository for the shared Party Panel resources at https://osf.io/7bv4w/.
 
-### Confidentiality and embargo
+### Full disclosure, confidentiality and embargo
 
 `r waveSpecificConfidentiality`
 
