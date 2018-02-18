@@ -1,0 +1,199 @@
+---
+title: "Party Panel Overview Report"
+author: "Greater Good (Gjalt-Jorn Peters)"
+date: "`r format(Sys.time(), '%d %b %Y at %H:%M:%S');`"
+output:
+  html_document:
+    toc: false
+---
+
+Party Panel Overview Report {.tabset}
+====================================
+
+<!--------------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+
+```{r source-render-all}
+### Load packages
+require('userfriendlyscience');
+require('here');
+require('viridis');
+
+### Set paths
+sharedPath <- here::here();
+rootPath <- file.path(sharedPath, "..");
+#rootPath <- "B:/Data/research/party panel";
+#sharedPath <- file.path(rootPath, "partypanel-shared");
+basePath <- sharedPath;
+outputPath <- file.path(basePath, 'results - reports');
+workingPath <- file.path(basePath, 'results - intermediate output');
+
+### Load and merge data (and generate reports)
+source('render all.R');
+
+### Function to conveniently save plots with good default settings
+ggSave <- function(filename=default_name(plot), plot = last_plot(),
+                   device="png", height=defaultFigHeight, width=defaultFigWidth, units="in",
+                   dpi = 300, type="cairo-png", bg="transparent", ...) {
+  ggsave(filename=filename, plot=plot, device=device,
+         height=height, width=width, units=units,
+         dpi=dpi, type=type, bg = bg, ...);
+}
+
+```
+
+```{r dropout}
+
+ppRecrInfo <- sapply(names(ppRecrInfo),
+                     function(currentRecrInfo) {
+                       ppRecrInfo[[currentRecrInfo]]$progressiveDropout$comments <-
+                         ppRecrInfo[[currentRecrInfo]]$specificDropout$comments[-nrow(ppRecrInfo[[currentRecrInfo]]$specificDropout)];
+                       return(ppRecrInfo[[currentRecrInfo]]);
+                     }, simplify=FALSE);
+
+### This bit has to be custom for each wave (for now)
+
+ppProgressiveDropout <-
+  rbind(ppRecrInfo[[1]]$progressiveDropout[ppRecrInfo[[1]]$progressiveDropout$comments %in% c("intro",
+                                                                                              "partyhabits",
+                                                                                              "strngXTC_general",
+                                                                                              "demographics",
+                                                                                              "ending"),
+                                           c("comments", "frequency", "prettyPercentage")],
+        ppRecrInfo[[2]]$progressiveDropout[ppRecrInfo[[2]]$progressiveDropout$comments %in% c("intro",
+                                                                                              "partyBehavior",
+                                                                                              "faFriendGeneric",
+                                                                                              "demographics",
+                                                                                              "ending"),
+                                           c("comments", "frequency", "prettyPercentage")],
+        ppRecrInfo[[3]]$progressiveDropout[ppRecrInfo[[3]]$progressiveDropout$comments %in% c("intro",
+                                                                                              "partyBehavior",
+                                                                                              "epGeneral",
+                                                                                              "demographics",
+                                                                                              "ending"),
+                                           c("comments", "frequency", "prettyPercentage")]);
+
+ppProgressiveDropout$wave <- rep(c("15.1", "16.1", "17.1"), each=5);
+ppProgressiveDropout$stage <- factor(rep(1:5, 3),
+                                     levels=1:5,
+                                     labels=c("Opened", "Started", "Determinants", "Demographic", "Finished"),
+                                     ordered=TRUE);
+
+tmpPlot <- ggplot(ppProgressiveDropout, 
+                  aes_string(x = "stage",
+                             y = "frequency",
+                             group = "wave",
+                             color = "wave")) +
+  geom_point(size = 4) + 
+  geom_line(size = 1) +
+  scale_fill_viridis(discrete=TRUE, end=.8) +
+  scale_color_viridis(discrete=TRUE, end=.8) +
+  ylab("Aantal deelnemers") + 
+  xlab("Plek in de vragenlijst") +
+  theme_bw() +
+  geom_text_repel(aes_string(label = "prettyPercentage"), 
+                  point.padding = unit(1, "lines"), min.segment.length = unit(0.05, 
+                                                                              "lines"),
+                  size = 8, nudge_x = 1,
+                  show.legend = FALSE) +
+  theme(text=element_text(size=26),
+        plot.background = element_rect(fill = "transparent",
+                                       color = NA));
+
+ggSave(plot=tmpPlot,
+       file.path(workingPath,
+                 "pp-shared-dropout.png"),
+       width=14,
+       height=6);
+
+knitFig(tmpPlot,
+        figWidth  = 14/2.54,
+        figHeight = 6/2.54,
+        figCaption = "pp-shared-dropout");
+
+```
+
+```{r age}
+
+tmpPlot <- ggEasyRidge(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_age$', names(fullDat), value=TRUE))),
+                       labels = gsub("t(.*)_age", "\\1",
+                                     rev(sort(grep('^t\\d\\d\\.\\d_age$', names(fullDat), value=TRUE)))),
+                       sortByMean=FALSE) +
+  theme_bw() +
+  labs(x = "Leeftijd") +
+  coord_cartesian(ylim=c(1, 4.5)) +
+  scale_x_continuous(breaks=c(10, 20, 30, 40, 50, 60, 70)) +
+  theme(text=element_text(size=26),
+        plot.background = element_rect(fill = "transparent",
+                                       color = NA));
+
+ggSave(plot=tmpPlot,
+       file.path(workingPath,
+                 "pp-shared-age.png"),
+       width=14,
+       height=6);
+
+knitFig(tmpPlot,
+        figWidth  = 14/2.54,
+        figHeight = 6/2.54,
+        figCaption = "pp-shared-age");
+
+```
+
+
+```{r gender}
+
+tmpPlot <- ggEasyBar(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(fullDat), value=TRUE))),
+                     labels = gsub("t(.*)_gender", "\\1",
+                                   rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(fullDat), value=TRUE)))),
+                     fontSize = 6,
+                     labelMinPercentage=5,
+                     sortByMean=FALSE) +
+  theme_bw() +
+  labs(x = "Geslacht") +
+  theme(legend.position="bottom",
+        text=element_text(size=26),
+        plot.background = element_rect(fill = "transparent",
+                                       color = NA));
+
+ggSave(plot=tmpPlot,
+       file.path(workingPath,
+                 "pp-shared-gender.png"),
+       width=14,
+       height=6);
+
+knitFig(tmpPlot,
+        figWidth  = 14/2.54,
+        figHeight = 6/2.54,
+        figCaption = "pp-shared-gender");
+
+```
+
+
+```{r}
+
+tmpPlot <- ggEasyBar(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(fullDat), value=TRUE))),
+                       labels = gsub("t(.*)_gender", "\\1",
+                                     rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(fullDat), value=TRUE)))),
+                       sortByMean=FALSE) +
+  theme_bw() +
+  labs(x = "Geslacht") +
+  theme(legend.position="bottom",
+        text=element_text(size=26),
+        plot.background = element_rect(fill = "transparent",
+                                       color = NA));
+
+ggSave(plot=tmpPlot,
+       file.path(workingPath,
+                 "pp-shared-gender.png"),
+       width=14,
+       height=6);
+
+knitFig(tmpPlot,
+        figWidth  = 14/2.54,
+        figHeight = 6/2.54,
+        figCaption = "pp-shared-gender");
+
+```
