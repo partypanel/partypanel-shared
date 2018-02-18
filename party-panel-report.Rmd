@@ -324,7 +324,7 @@ Party Panel was designed to inform development of effective behavior change inte
 
 Reading this report may require expertise regarding behavior change. Interested readers who as yet lack the required knowledge can use the Open Access (freely available) articles about behavior change that are available at https://effectivebehaviorchange.com.
 
-### Ethics and Full Disclosure
+### Ethics
 
 Ethical approval for the Party Panel determinant studies was granted by the committee for Ethical Testing of Research (commissie Ethische Toetsing Onderzoek, cETO) of the Open University of the Netherlands, under files numbers U2015/03757/HVM and U2017/03081/FRO. The applications and approval letters are available at the Open Science Framework repository for the shared Party Panel resources at https://osf.io/7bv4w/.
 
@@ -448,7 +448,7 @@ De RAA stelt dat als je de redenen in die drie categorieën goed in kaart brengt
  
 Naast de RAA zijn er nog talloze andere theorieën om gedrag te verklaren. Deze groeperingen van gelijksoortige redenen heten in de psychologie variabelen, en als het gaat over gedragsverandering worden ze vaak determinanten genoemd.
 
-Als je dit interessant vindt, staan er ‘Open Access’ (gratis toegankelijke) inleidende, en verdiepende, artikelen over gedragsverandering op https://effectivebehaviorchange.com
+Gedragsverandering is een subdomein van de psychologie. Naast grondige kennis van de psychologie vereist het constructief kunnen denken over effectieve gedragsveranderingsinterventies daarom specialistische kennis met betrekking tot de theorie van verklaring en verandering van gedrag. In de voorgaande alinea's is gepoogd om voldoende over te brengen zodat ook leken met betrekking tot gedragsverandering uit de voeten kunnen met dit rapport. Lezers die zich verder willen verdiepen adviseren we om de ‘Open Access’ (gratis toegankelijke) inleidende, en verdiepende, artikelen over gedragsverandering op https://effectivebehaviorchange.com te raadplegen. Verder is het altijd raadzaam om bij de ontwikkeling van alle preventie (of andere campagnes) die zijn gericht op gedragsverandering, of verandering van antecedenten van gedrag zoals bewustwording of kennis, experts in de gedragsverandering te raadplegen.
 
 ```{r wave-specific-recommendations, child=file.path(scriptPath, paste0("partypanel-", waveNumber, "-wave-specific-recommendations.Rmd"))}
 ```
@@ -776,13 +776,13 @@ Party Panel participants were recruited primarily through social media. The Dutc
 
 This figure shows participant recruitment over time:
 
-```{r results="asis"}
+```{r recruitment-over-time, results="asis"}
 #   print(suppressWarnings(recruitmentInfo$plots$temporalProgression));
 ```
 
 During this time, `r nrow(dat);` participants opened the first page containing the Informed Consent. From this point, the progression through the survey was as follows:
 
-```{r results="asis"}
+```{r progression-through-survey, results="asis"}
 
   knitFig(plotToDraw = recruitmentInfo$plots$relativeDropout,
           figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
@@ -811,19 +811,13 @@ Participants were recruited from all over the Netherland, mostly the most densel
 
 -->
 
-```{r results="asis"}
+```{r participant-origins, results="asis"}
 #  if (exists('participantOrigins')) {
 #    print(participantOrigins);
 #  }
 ```
 
 `r cat(waveSpecificRandomNumberStatement); `
-
-```{r}
-
-
-
-```
 
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
@@ -832,7 +826,7 @@ Participants were recruited from all over the Netherland, mostly the most densel
 
 ## Participants (sample description)
 
-```{r results='asis', message=FALSE}
+```{r sample-description, results='asis', message=FALSE}
 
 pandoc.header("Gender", 3);
 
@@ -917,7 +911,7 @@ for (currentFreqVar in names(frequencyVarNames)) {
 
 These are visualisations of the determinant structures of the behaviors in this Party Panel wave. The associations of the sub-determinants in each of these determinants with the overarching determinants and with intention will then be visualised using CIBER plots.
 
-```{r}
+```{r ciber-plot-generation}
 
 ###############################################################################
 ### For each behavior, process the determinant structure to add CIBER plots
@@ -989,7 +983,7 @@ for (currentDetStruct in detStruct) {
 
 This section contains CIBER plots to show the determinant relevance. These are organised based on the determinant structure; the headings and each figure's caption shows to which behavior and to which (sub)-determinants each CIBER plot pertains.
 
-```{r results='asis'}
+```{r determinant-importance, results='asis'}
 
 singleQuestionEasyBarList <<- list();
 determinantDetStructList <<- list();
@@ -1337,7 +1331,7 @@ cat("\n\n", classCorrectionOutput, "\n\n");
 
 ### Codebook (Survey Questions for reference)
 
-```{r results="asis"}
+```{r codebook, results="asis"}
 cat(apply(labelDf, 1, function(x) {
   cat0("* <span style='color:red;'>", x[1], "</span> - ", x[3],
        " - <span style='color:grey'>", x[2], "</span>\n");

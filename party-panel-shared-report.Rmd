@@ -21,6 +21,9 @@ require('userfriendlyscience');
 require('here');
 require('viridis');
 
+### Load and merge data (and generate reports)
+source('render all.R');
+
 ### Set paths
 sharedPath <- here::here();
 rootPath <- file.path(sharedPath, "..");
@@ -29,9 +32,6 @@ rootPath <- file.path(sharedPath, "..");
 basePath <- sharedPath;
 outputPath <- file.path(basePath, 'results - reports');
 workingPath <- file.path(basePath, 'results - intermediate output');
-
-### Load and merge data (and generate reports)
-source('render all.R');
 
 ### Function to conveniently save plots with good default settings
 ggSave <- function(filename=default_name(plot), plot = last_plot(),
@@ -151,33 +151,6 @@ tmpPlot <- ggEasyBar(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(full
                      fontSize = 6,
                      labelMinPercentage=5,
                      sortByMean=FALSE) +
-  theme_bw() +
-  labs(x = "Geslacht") +
-  theme(legend.position="bottom",
-        text=element_text(size=26),
-        plot.background = element_rect(fill = "transparent",
-                                       color = NA));
-
-ggSave(plot=tmpPlot,
-       file.path(workingPath,
-                 "pp-shared-gender.png"),
-       width=14,
-       height=6);
-
-knitFig(tmpPlot,
-        figWidth  = 14/2.54,
-        figHeight = 6/2.54,
-        figCaption = "pp-shared-gender");
-
-```
-
-
-```{r}
-
-tmpPlot <- ggEasyBar(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(fullDat), value=TRUE))),
-                       labels = gsub("t(.*)_gender", "\\1",
-                                     rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(fullDat), value=TRUE)))),
-                       sortByMean=FALSE) +
   theme_bw() +
   labs(x = "Geslacht") +
   theme(legend.position="bottom",
