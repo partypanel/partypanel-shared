@@ -7,7 +7,8 @@ require('plyr');
 require('here');
 
 #rootPath <- "B:/Data/research/party panel";
-rootPath <- here::here("..");
+sharedPath <- here::here();
+rootPath <- file.path(sharedPath, "..");
 subdirs <- grep("partypanel-\\d\\d.\\d$", list.files(rootPath), value=TRUE);
 waves <- gsub("partypanel-", "", subdirs);
 filenames <- paste0("partypanel-", waves,

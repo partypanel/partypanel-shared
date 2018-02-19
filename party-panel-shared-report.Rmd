@@ -15,14 +15,47 @@ Party Panel Overview Report {.tabset}
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
 
-```{r source-render-all}
+```{r source-render-all, echo=FALSE, message=FALSE, include=FALSE }
 ### Load packages
 require('userfriendlyscience');
-require('here');
-require('viridis');
+safeRequire('here');
+safeRequire('viridis');
+safeRequire('pander');
+
+###########################################################################
+### Configure RMarkdown etc
+###########################################################################
+
+maxFigWidth = 20 / 2.54;
+defaultFigWidth = 12 / 2.54;
+maxFigHeight = 29 / 2.54;
+defaultFigHeight = 12 / 2.54;
+
+options(width=160);
+options(scipen=100);
+#options(xtable.type = "html");
+
+panderOptions('knitr.auto.asis', FALSE);
+panderOptions('table.split.table', Inf);
+
+knitr::opts_chunk$set(echo=FALSE);
+knitr::opts_chunk$set(comment=NA);
+knitr::opts_chunk$set(cache=FALSE);
+knitr::opts_chunk$set(dev="png",
+		  		            dev.args=list(type="cairo"),
+			    	          dpi=100);
+knitr::opts_chunk$set(fig.width=defaultFigWidth);
+knitr::opts_chunk$set(fig.height=defaultFigHeight);
+
+options(ufs.knitFig.figWidth = defaultFigWidth);
+options(ufs.knitFig.figHeight = defaultFigHeight);
 
 ### Load and merge data (and generate reports)
 source('render all.R');
+
+### Set automatic figure numbering
+setFigCapNumbering();
+setTabCapNumbering();
 
 ### Set paths
 sharedPath <- here::here();

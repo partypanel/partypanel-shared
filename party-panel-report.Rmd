@@ -1,13 +1,11 @@
 ---
 title: "Party Panel `r params$waveNumber` Report"
-author: "Greater Good (Gjalt-Jorn Peters)"
+author: "Gjalt-Jorn Peters (Greater Good, Open Universiteit & Academy of Behavior Change) & Judith Noijen (Jellinek Preventie)"
 date: "`r format(Sys.time(), '%d %b %Y at %H:%M:%S');`"
 output:
   html_document:
     toc: false
-    css: "B:\\Data\\research\\party panel\\partypanel-shared\\party panel reports.css"
-#    toc_float: true
-#    toc_depth: 5
+    css: "party panel reports.css"
 params:
   #waveNumber: "15.1"
   #waveNumber: 16.1
@@ -15,6 +13,7 @@ params:
   #basePath: 'B:/Data/research/party panel/partypanel-15.1'
   #basePath: 'B:/Data/research/party panel/partypanel-16.1'
   basePath: 'B:/Data/research/party panel/partypanel-17.1'
+  sharedPath: 'B:/Data/research/party panel/partypanel-shared'
   #surveyId: 652829
   #surveyId: 321858
   surveyId: 559363
@@ -27,6 +26,7 @@ params:
 ```{r pp-parse-params, echo=FALSE}
 waveNumber <- params$waveNumber;
 basePath <- params$basePath;
+sharedPath <- params$sharedPath;
 surveyId <- params$surveyId;
 startDateRaw <- as.POSIXct(params$startDate);
 startDate <- format(startDateRaw, format="%d %B %Y");
@@ -110,6 +110,14 @@ dataFileRegEx <- paste0('survey_', surveyId, '_R_data_file.*\\.csv');
 dataLoadScriptName <- paste0('survey_', surveyId, '_R_syntax_file.R');
 
 ###########################################################################
+### Load resources
+###########################################################################
+
+ppLogoAsSVG <- paste0(readLines(file.path(sharedPath,
+                                          "pp_pp-logo.html")),
+                      collapse="");
+
+###########################################################################
 ### Set variables & helper functions
 ###########################################################################
 
@@ -167,7 +175,9 @@ singleQuestionEasyBar <- function(item,
                                   outputPath = workingPath,
                                   knitFig = TRUE,
                                   figWidth = 12,
-                                  figHeight = 3) {
+                                  figHeight = 3,
+                                  headerLevel=5,
+                                  niceHeader=NULL) {
   
   if (item %in% labelDf$varNames.cln) {
     questionText <- labelDataframe[labelDf$varNames.cln==item, 'questionText'];
@@ -180,14 +190,18 @@ singleQuestionEasyBar <- function(item,
   }
 
   if (knitFig) {
+    if (is.null(niceHeader)) {
+      niceHeader <- item;
+    }
+    pandoc.header(niceHeader, level=headerLevel);
     cat("\n\n");
-    pandoc.p(paste0("These are the results for question (or rather, variable) '", item, "'."));
+    cat(paste0("These are the results for question (or rather, variable) '<str>", item, "</str>'."));
     cat("\n\n");
   }
   
   if ((item %in% labelDf$varNames.cln) && (nchar(trim(questionText)) > 0)) {
     cat("\n\n");
-    pandoc.p(paste0("The lead-in for this question was <str>", questionText, "</str>."));
+    cat(paste0("The lead-in for this question was \"<str>", questionText, "</str>\"."));
     cat("\n\n");
   }
   
@@ -305,8 +319,15 @@ multiQuestionEasyBar <- function(items,
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
 
+<div class='ppLogo'>
+`r ppLogoAsSVG`
+</div>
+
 Party Panel `r waveNumber` {.tabset}
 ====================================
+
+<div class="authorInfo">`r rmarkdown::metadata$author`</div>
+<div class="creationDateInfo">This report is generated on `r format(Sys.time(), '%d %b %Y at %H:%M:%S');`.</div>
 
 ## Background
 
@@ -318,6 +339,24 @@ This document is the report of the Party Panel results. This is a living documen
 
 This document is in English, except the section with prevention recommendations, because it is written specifically for Dutch prevention professionals.
 
+### Publication and distribution
+
+#### Press releases
+
+It is not allowed to publish Party Panel results in a press release. Only the Celebrate Safe project committee has the right to publish press releases containing Party Panel results, and then only after explicit approval from Greater Good. If you think doing a press release about a specific Party Panel result can be helpful as a prevention effort, you can always contact the Celebrate Safe project committee and explain this to them. However, Party Panel is intended as scientific research and to inform prevention efforts: not as a marketing tool.
+
+#### License governing sharing
+
+Party Panel is primarily a scientific and prevention endeavour. We publish this report, the Party Panel data and resources, and the outcomes, usually after an embargo period, under the Creative Commons attribution share alike license (CC-BY-NC-SA; see http://creativecommons.org/licenses/by-nc-sa/4.0/). This means that you are allowed to copy and distribute these files freely, but you're not allowed to sell them. It also means that if you create derivative works (i.e. if you remix, transform, or build upon the material), you must distribute your contributions under the same license as the original.
+
+#### Confidentiality and embargo
+
+`r waveSpecificConfidentiality`
+
+#### Full disclosure
+
+Party Panel follows the Open Science principle of Full Disclosure. Each Party Panel wave has a component repository in the general Party Panel Open Science Framework repository at https://osf.io/s4fmu/. Note that the general terms and conditions as contained in the Creative Commons license listed above, as well as the restriction pertaining to press releases, remains in effect.
+
 ### Behavior Change
 
 Party Panel was designed to inform development of effective behavior change interventions in the Dutch nightlife, to support a healthy, safe, fun nightlife where the personal integrity of its visitors is respected.
@@ -327,10 +366,6 @@ Reading this report may require expertise regarding behavior change. Interested 
 ### Ethics
 
 Ethical approval for the Party Panel determinant studies was granted by the committee for Ethical Testing of Research (commissie Ethische Toetsing Onderzoek, cETO) of the Open University of the Netherlands, under files numbers U2015/03757/HVM and U2017/03081/FRO. The applications and approval letters are available at the Open Science Framework repository for the shared Party Panel resources at https://osf.io/7bv4w/.
-
-### Full disclosure, confidentiality and embargo
-
-`r waveSpecificConfidentiality`
 
 ### How to use this report
 
@@ -411,11 +446,11 @@ Als je incidenten in het uitgaansleven wil voorkomen, en eigenlijk in het algeme
 
 ### Verandering van gedrag
 
-Gedragsverandering is eigenlijk gewoon versneld leren. Mensen kunnen ‘van nature’ natuurlijk al goed leren: wezens zonder het vermogen om te leren hebben een veel lagere overlevingskans, waardoor het vermogen te leren in veruit de meeste diersoorten is geëvolueerd. Tegelijkertijd is dat vermogen om te leren natuurlijk nooit ontwikkeld om preventie mogelijk te maken. Kortom: als je mensen wil helpen hun gedrag te veranderen, gebruik je een proces (leren) dat eigenlijk ergens anders voor is ontwikkeld.
+Gedragsverandering is eigenlijk gewoon versneld leren. Mensen kunnen 'van nature' natuurlijk al goed leren: wezens zonder het vermogen om te leren hebben een veel lagere overlevingskans, waardoor het vermogen te leren in veruit de meeste diersoorten is geëvolueerd. Tegelijkertijd is dat vermogen om te leren natuurlijk nooit ontwikkeld om preventie mogelijk te maken. Kortom: als je mensen wil helpen hun gedrag te veranderen, gebruik je een proces (leren) dat eigenlijk ergens anders voor is ontwikkeld.
 
-Het komt daarom erg nauw wat je doet: het is moeilijk om precies het ‘leerproces’ waar de menselijke psychologie mee is uitgerust na te bootsen om zo de juiste veranderingen in iemands opvattingen te bewerkstelligen. Omdat dit zo lastig is, is er veel onderzoek naar gedaan. Uit dat onderzoek zijn inmiddels een aantal methoden voor gedragsverandering bekend. Deze methoden maken gebruik van verschillende vormen van leren, die soms op verschillende typen geheugen zijn gericht.
+Het komt daarom erg nauw wat je doet: het is moeilijk om precies het 'leerproces' waar de menselijke psychologie mee is uitgerust na te bootsen om zo de juiste veranderingen in iemands opvattingen te bewerkstelligen. Omdat dit zo lastig is, is er veel onderzoek naar gedaan. Uit dat onderzoek zijn inmiddels een aantal methoden voor gedragsverandering bekend. Deze methoden maken gebruik van verschillende vormen van leren, die soms op verschillende typen geheugen zijn gericht.
 
-Methoden voor gedragsverandering zijn niet zomaar ‘blind’ te gebruiken: het is jammer genoeg niet zo dat je alleen maar het “juiste truckje” hoeft te vinden. Verschillende methoden zijn in staat om verschillende soorten opvattingen te veranderen. Mensen kunnen immers allerlei uiteenlopende redenen hebben voor hun gedrag, en die vereisen allemaal een andere aanpak. Voordat je echt over verandering na kunt denken, moet je dus begrijpen waarom mensen doen wat ze doen.
+Methoden voor gedragsverandering zijn niet zomaar 'blind' te gebruiken: het is jammer genoeg niet zo dat je alleen maar het “juiste truckje” hoeft te vinden. Verschillende methoden zijn in staat om verschillende soorten opvattingen te veranderen. Mensen kunnen immers allerlei uiteenlopende redenen hebben voor hun gedrag, en die vereisen allemaal een andere aanpak. Voordat je echt over verandering na kunt denken, moet je dus begrijpen waarom mensen doen wat ze doen.
 
 ### Verklaring van gedrag
 
@@ -423,18 +458,20 @@ Mensen kunnen allerlei redenen hebben voor wat ze doen. Menselijk gedrag is comp
 
 Gelukkig wordt er al een dikke honderd jaar onderzoek gedaan in de psychologie, dus inmiddels zijn hier allerlei oplossingen voor gevonden. In de basis zijn die gebaseerd op hetzelfde uitgangspunt: al die verschillende redenen kun je groeperen. Sommige redenen lijken namelijk nogal op elkaar. Mensen voelen bijvoorbeeld sociale druk; of houden rekening met hun lange-termijn doelen; of hebben niet het gevoel dat ze iets goed kunnen. Je kunt die honderden redenen dus ordenen door ze te groeperen, en dit is wat psychologische theorieën doen.
 
-Er zijn inmiddels heel veel theorieën die verklaren waarom mensen doen wat ze doen. Veel gezondheidsgedrag is gedrag waar mensen over nadenken: zogenaamde beredeneerd gedrag. Een van de meest gebruikte theorieën over beredeneerd gedrag heet heel toepasselijk de “Beredeneerd Gedrag Benadering” (ok, hij heet eigenlijk de Reasoned Action Approach, RAA, wat toch wat beter klinkt). De RAA is de derde ‘versie’ van een theorie die hiervoor de Theory van Geplanned Gedrag heette, en daarvoor de Theorie van Beredeneerde Actie.
+Er zijn inmiddels heel veel theorieën die verklaren waarom mensen doen wat ze doen. Veel gezondheidsgedrag is gedrag waar mensen over nadenken: zogenaamde beredeneerd gedrag. Een van de meest gebruikte theorieën over beredeneerd gedrag heet heel toepasselijk de "Beredeneerd Gedrag Benadering" (ok, hij heet eigenlijk de Reasoned Action Approach, RAA, wat toch wat beter klinkt). De RAA is de derde 'versie' van een theorie die hiervoor de Theory van Geplanned Gedrag heette, en daarvoor de Theorie van Beredeneerde Actie.
 
 Deze theorie stelt dat beredeneerd gedrag vooral wordt bepaald door of mensen de intentie hebben om dat betreffende gedrag uit te voeren. Dat is natuurlijk nogal logisch: als je van plan bent om iets te doen, dan doe je het meestal ook, als er tenminste geen obstakels in de omgeving zijn, en als de controle over je gedrag niet afneemt. De kracht van de RAA zit in de voorspellers van die intentie. Dit zijn volgens de RAA drie groepen vergelijkbare redenen: attitude, waargenomen norm, en waargenomen gedragscontrole.
 
 #### Attitude
 
-Attitude is een soort ‘gewogen gemiddelde’ van alle voor- en nadelen van een gedrag, of accurater uitgedrukt, van de mogelijke gevolgen, hoe waarschijnlijk iemand denkt dat die gevolgen zijn, en hoe wenselijk iemand die gevolgen vindt. Inschatting van de risico’s van een gedrag maakt hier deel van uit, maar er is nog veel meer, bijvoorbeeld de voordelen van het gedrag (middelengebruik is bijvoorbeeld leuk/lekker).
+Attitude is een soort 'gewogen gemiddelde' van alle voor- en nadelen van een gedrag, of accurater uitgedrukt, van de mogelijke gevolgen, hoe waarschijnlijk iemand denkt dat die gevolgen zijn, en hoe wenselijk iemand die gevolgen vindt. Inschatting van de risico’s van een gedrag maakt hier deel van uit, maar er is nog veel meer, bijvoorbeeld de voordelen van het gedrag (middelengebruik is bijvoorbeeld leuk/lekker).
+
 Attitude bestaat dus uit twee onderdelen: de ingeschatte waarschijnlijkheid van de mogelijke gevolgen van gedrag, en de wenselijkheid van elk mogelijke gevolg (hoe wenselijk of onwenselijk iemand die gevolgen vindt).
 
 #### Waargenomen norm
 
 Waargenomen norm gaat over of je denkt dat de mensen die belangrijk voor je zijn het goed- of afkeuren als jij het betreffende gedrag uitvoert, en over of je denkt dat de mensen om je heen dat gedrag zelf uitvoeren. Of mensen iets goedkeuren of afkeuren, en wat ze zelf doen, hoeft natuurlijk niet hetzelfde te zijn: ouders kunnen best hun kinderen vertellen dat ze nooit moeten gaan roken, maar zelf wel roken.
+
 Waargenomen norm bestaat uit drie onderdelen: je inschatting van goed- of afkeuring door anderen (injunctieve norm), de mate waarin je waarde hecht aan die oordelen (motivation to comply), en je inschatting van het gedrag van anderen (descriptieve norm).
 
 #### Waargenomen gedragscontrole
@@ -442,13 +479,13 @@ Waargenomen norm bestaat uit drie onderdelen: je inschatting van goed- of afkeur
 Waargenomen gedragscontrole gaat over of je denkt dat je het gedrag uit kunt voeren: is het onder jouw controle, en heb je de nodige vaardigheden wel? Je kunt best van plan zijn om genoeg te rusten als je ecstasy hebt gebruikt, maar als er geen chill out is, wordt dat lastig. En wat als je hebt besloten om geen cocaine te gebruiken, maar de drie mensen waar je mee uit bent doen dat wel – weet je hoe je dan toch niet zwicht voor de verleiding?
 Waargenomen gedragscontrole bestaat uit twee onderdelen: de hoeveelheid controle die je over gedrag hebt (controle), en hoe goed je denkt dat je in het gedrag bent (capaciteit).
 
-### Gedragsverandering
+### Party Panel en gedragsverandering
 
 De RAA stelt dat als je de redenen in die drie categorieën goed in kaart brengt, dat je dan goed kunt voorspellen wat mensen doen. En als je dat kunt, begrijp je genoeg van het gedrag om te gaan denken aan gedragsverandering: dan kun je op zoek naar methoden die werken om de redenen die belangrijk zijn, te veranderen. In een plaatje ziet die RAA er zo uit:
  
 Naast de RAA zijn er nog talloze andere theorieën om gedrag te verklaren. Deze groeperingen van gelijksoortige redenen heten in de psychologie variabelen, en als het gaat over gedragsverandering worden ze vaak determinanten genoemd.
 
-Gedragsverandering is een subdomein van de psychologie. Naast grondige kennis van de psychologie vereist het constructief kunnen denken over effectieve gedragsveranderingsinterventies daarom specialistische kennis met betrekking tot de theorie van verklaring en verandering van gedrag. In de voorgaande alinea's is gepoogd om voldoende over te brengen zodat ook leken met betrekking tot gedragsverandering uit de voeten kunnen met dit rapport. Lezers die zich verder willen verdiepen adviseren we om de ‘Open Access’ (gratis toegankelijke) inleidende, en verdiepende, artikelen over gedragsverandering op https://effectivebehaviorchange.com te raadplegen. Verder is het altijd raadzaam om bij de ontwikkeling van alle preventie (of andere campagnes) die zijn gericht op gedragsverandering, of verandering van antecedenten van gedrag zoals bewustwording of kennis, experts in de gedragsverandering te raadplegen.
+Gedragsverandering is een subdomein van de psychologie. Naast grondige kennis van de psychologie vereist het constructief kunnen denken over effectieve gedragsveranderingsinterventies daarom specialistische kennis met betrekking tot de theorie van verklaring en verandering van gedrag. In de voorgaande alinea's is gepoogd om voldoende over te brengen zodat ook leken met betrekking tot gedragsverandering uit de voeten kunnen met dit rapport. Lezers die zich verder willen verdiepen adviseren we om de 'Open Access' (gratis toegankelijke) inleidende, en verdiepende, artikelen over gedragsverandering op https://effectivebehaviorchange.com te raadplegen. Verder is het altijd raadzaam om bij de ontwikkeling van alle preventie (of andere campagnes) die zijn gericht op gedragsverandering, of verandering van antecedenten van gedrag zoals bewustwording of kennis, experts in de gedragsverandering te raadplegen.
 
 ```{r wave-specific-recommendations, child=file.path(scriptPath, paste0("partypanel-", waveNumber, "-wave-specific-recommendations.Rmd"))}
 ```
@@ -817,7 +854,7 @@ Participants were recruited from all over the Netherland, mostly the most densel
 #  }
 ```
 
-`r cat(waveSpecificRandomNumberStatement); `
+`r waveSpecificRandomNumberStatement`
 
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
@@ -983,7 +1020,7 @@ for (currentDetStruct in detStruct) {
 
 This section contains CIBER plots to show the determinant relevance. These are organised based on the determinant structure; the headings and each figure's caption shows to which behavior and to which (sub)-determinants each CIBER plot pertains.
 
-```{r determinant-importance, results='asis'}
+```{r determinant-importance, results='asis', message=FALSE}
 
 singleQuestionEasyBarList <<- list();
 determinantDetStructList <<- list();
@@ -1000,39 +1037,57 @@ for (i in seq_along(detStruct)) {
                 determinants=Get(currentNode$children, 'scaleVarName'),
                 fullColorRange=c(1, 7),
                 targets=currentNode$scaleVarName,
-                xbreaks=1:7);
-        figHeight <- 1.5 + attr(tmpCIBER, 'height');
+                xbreaks=1:7,
+                drawPlot=FALSE);
+        figHeight <- 2.5 + attr(tmpCIBER, 'height');
         figWidth <- attr(tmpCIBER, 'width');
         drawPlot <- TRUE;
         determinantDetStructList[[length(determinantDetStructList)+1]] <<-
-          arrangeGrob(meansDiamondPlot(dat,
-                                       currentNode$scaleVarName,
-                                       xbreaks=1:7),
-                      tmpCIBER, ncol=1);
+          arrangeGrob(ggEasyRidge(dat,
+                                  currentNode$scaleVarName,
+                                  labels="") +
+                        scale_x_continuous(breaks=1:7) +
+                        coord_cartesian(xlim=c(1, 7)),
+                       meansDiamondPlot(dat,
+                                        currentNode$scaleVarName,
+                                        xbreaks=1:7,
+                                        labels="") +
+                        coord_cartesian(xlim=c(1, 7)),
+                      tmpCIBER,
+                      ncol=1);
         plotToDraw <- paste0("determinantDetStructList[[",
                              length(determinantDetStructList),
                              "]]");
+        plotToDrawAsPlot <- determinantDetStructList[[length(determinantDetStructList)]];
     } else if (is.null(currentNode$determinantImportance)) {
       if (is.null(currentNode$scaleVarName)) {
         figHeight <- figWidth <- 1;
         drawPlot <- FALSE;
         plotToDraw <- "";
       } else {
-        figHeight <- 1.5;
-        figWidth <- 10;
+        figHeight <- 2.5;
+        figWidth <- 8;
         drawPlot <- TRUE;
         ### Bit messy; but store plot in parent environment for
         ### inclusion by knitr
         singleQuestionEasyBarList[[length(singleQuestionEasyBarList)+1]]  <<- 
-          #arrangeGrob(singleQuestionEasyBar(currentNode$scaleVarName,
-          #                                  knitFig=FALSE),
+          arrangeGrob(ggEasyRidge(dat,
+                                  currentNode$scaleVarName,
+                                  labels="") +
+                        scale_x_continuous(breaks=1:7) +
+                        coord_cartesian(xlim=c(1, 7)),
+            # singleQuestionEasyBar(currentNode$scaleVarName,
+            #                                 knitFig=FALSE),
                       meansDiamondPlot(dat,
                                        currentNode$scaleVarName,
-                                       xbreaks=1:7);
-          #           ,ncol=1);
+                                       xbreaks=1:7,
+                                       labels="") +
+                        coord_cartesian(xlim=c(1, 7)),
+                      ncol=1);
         plotToDraw <- paste0("singleQuestionEasyBarList[[",
                              length(singleQuestionEasyBarList),
                              "]]");
+        plotToDrawAsPlot <- singleQuestionEasyBarList[[length(singleQuestionEasyBarList)]];
       }
     } else {
       figHeight <- attr(currentNode$determinantImportance, 'height');
@@ -1041,6 +1096,7 @@ for (i in seq_along(detStruct)) {
       plotToDraw <- paste0("detStruct[[", i, "]]$",
                            vecTxt(currentNode$path[-1], delimiter="$", lastElements=0, useQuote="`"),
                            "$determinantImportance");
+      plotToDrawAsPlot <- currentNode$determinantImportance;
     }
     chunkName <- gsub("\\s", "", paste0(paste0(currentNode$path, collapse="-")));
     headerName <- currentNode$name;
@@ -1058,9 +1114,10 @@ for (i in seq_along(detStruct)) {
             headerName = toTitleCase(headerName),
             headerLevel = headerLevel);
 
-    if (!is.null(currentNode$determinantImportance)) {
+    #if (!is.null(currentNode$determinantImportance)) {
+    if (drawPlot) {
       ### Save to disk for other uses
-      ggSave(plot=currentNode$determinantImportance,
+      ggSave(plot=plotToDrawAsPlot, #currentNode$determinantImportance,
              file.path(workingPath,
                        paste0("CIBER-",
                               paste0(paste0(currentNode$path, collapse="-")),

@@ -5761,52 +5761,57 @@ button.close{
 /********************************************************/
 /********************************************************/
 /********************************************************/
+/*** Party Panel customizations
 /********************************************************/
 /********************************************************/
 /********************************************************/
 
 
 h1 {
-  font-size: 3.25em;
+  text-align: center;
+  font-size: 3em;
+  font-weight: bold;
+  color: #172F47; /* #A4C3E2; */
 }
 
+/* This isn't used - h2 is used to create the tabs */
 h2 {
-   font-size: 3em;
-   font-weight: bold;
-}
-
-h3 {
-   font-size: 2.75em;
-   font-weight: bold;
-}
-
-h4 {
-   font-size: 2.5em;
-   font-weight: bold;
-}
-
-h5 {
-   font-size: 2.25em;
-   font-weight: bold;
-}
-
-h6 {
    font-size: 2em;
    font-weight: bold;
 }
 
-h6 {
+h3 {
+   font-size: 2em;
+   font-weight: bold;
+}
+
+h4 {
    font-size: 1.75em;
    font-weight: bold;
 }
 
-h7 {
+h5 {
    font-size: 1.5em;
    font-weight: bold;
 }
 
+h6 {
+   font-size: 1.3em;
+   font-weight: bold;
+}
+
+h6 {
+   font-size: 1.2em;
+   font-weight: bold;
+}
+
+h7 {
+   font-size: 1.1em;
+   font-weight: bold;
+}
+
 h8 {
-   font-size: 1.25em;
+   font-size: 1em;
    font-weight: bold;
 }
 
@@ -5821,9 +5826,33 @@ figcaption {
   margin-bottom: 16px;
 }
 
+div.authorInfo, div.creationDateInfo {
+  font-size: .75em;
+  text-align: center;
+}
+
+div.ppLogo {
+  margin: 10px auto;
+  width: 200px;
+  height: 200px;
+}
+
+div#header {
+  display: none;
+  margin-top: 10px;
+}
+
 div#header h1, div#header h2, div#header h3, div#header h4, div#header h5, div#header h1.title {
-  font-size: 1em;
+  color: #A4C3E2;
+  font-size: .75em;
   font-weight: normal;
-  font-family: monospace;
+  font-family: sans-serif;
+  font-style: normal;
+  margin: 0px;
+  text-align: right;
+}
+
+div#header h4 em {
   font-style: normal;
 }
+
