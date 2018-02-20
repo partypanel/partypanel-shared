@@ -17,7 +17,9 @@ params:
   #surveyId: 652829
   #surveyId: 321858
   surveyId: 559363
-  startDate: '2017-01-01'
+  #startDate: '2015-06-28'
+  #startDate: '2016-05-27'
+  startDate: '2017-04-20'
   #behaviors: ['highDose', 'strngXTC', 'testing']
   behaviors: ['epc', 'epw', 'epb']
   categoricalQuestions: ['informedConsent', 'gender', 'hasJob', 'currentEducation', 'prevEducation', 'country']

@@ -21,6 +21,7 @@ require('userfriendlyscience');
 safeRequire('here');
 safeRequire('viridis');
 safeRequire('pander');
+safeRequire('tidyverse');
 
 ###########################################################################
 ### Configure RMarkdown etc
@@ -77,7 +78,43 @@ ggSave <- function(filename=default_name(plot), plot = last_plot(),
 
 ```
 
-```{r dropout}
+```{r start-and-end-dates}
+
+allWavesVector <- unique(gsub("^t([^_]*)_.*", "\\1", names(fullDat)));
+allWavesVector <- allWavesVector[allWavesVector != 'partyPanelCode'];
+
+startEndDates <- ldply(allWavesVector,
+                        function(wave) {
+                          return(c(startDate = fullDat[, paste0("t", wave, "_submitdate")] %>%
+                                                    min(na.rm=TRUE),
+                                      endDate = fullDat[, paste0("t", wave, "_submitdate")] %>%
+                                                    max(na.rm=TRUE)));
+                        });
+
+startEndDates$startDate.pretty <-
+  startEndDates$startDate %>% format(format="%d %B %Y");
+startEndDates$endDate.pretty <-
+  startEndDates$endDate %>% format(format="%d %B %Y");
+
+startEndDates$waves <- allWavesVector;
+
+startEndDates$ordinalWords <-
+  c("first", "second", "third", "fourth", "fifth",
+    "sixth", "seventh", "eight", "ninth", "tenth")[1:nrow(startEndDates)]
+
+startEndDateDescription <-
+  apply(startEndDates, 1, function(row) {
+    return(paste0("The ", row['ordinalWords'],
+                  " wave (", row['waves'],
+                  ") started on ", row['startDate.pretty'],
+                  " and ended on ", row['endDate.pretty'], "."));
+  });
+
+```
+
+In total, `r nrow(startEndDates)` Party Panel waves have taken place. `r paste(startEndDateDescription, collapse=" ")`
+
+```{r dropout, results='asis'}
 
 ppRecrInfo <- sapply(names(ppRecrInfo),
                      function(currentRecrInfo) {
@@ -142,13 +179,13 @@ ggSave(plot=tmpPlot,
        height=6);
 
 knitFig(tmpPlot,
-        figWidth  = 14/2.54,
-        figHeight = 6/2.54,
+        figWidth  = 14,
+        figHeight = 6,
         figCaption = "pp-shared-dropout");
 
 ```
 
-```{r age}
+```{r age, results='asis'}
 
 tmpPlot <- ggEasyRidge(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_age$', names(fullDat), value=TRUE))),
                        labels = gsub("t(.*)_age", "\\1",
@@ -169,14 +206,14 @@ ggSave(plot=tmpPlot,
        height=6);
 
 knitFig(tmpPlot,
-        figWidth  = 14/2.54,
-        figHeight = 6/2.54,
+        figWidth  = 14,
+        figHeight = 6,
         figCaption = "pp-shared-age");
 
 ```
 
 
-```{r gender}
+```{r gender, results='asis'}
 
 tmpPlot <- ggEasyBar(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_gender$', names(fullDat), value=TRUE))),
                      labels = gsub("t(.*)_gender", "\\1",
@@ -198,8 +235,8 @@ ggSave(plot=tmpPlot,
        height=6);
 
 knitFig(tmpPlot,
-        figWidth  = 14/2.54,
-        figHeight = 6/2.54,
+        figWidth  = 14,
+        figHeight = 6,
         figCaption = "pp-shared-gender");
 
 ```
