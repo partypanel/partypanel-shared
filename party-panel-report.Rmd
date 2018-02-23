@@ -369,6 +369,10 @@ Reading this report may require expertise regarding behavior change. Interested 
 
 Ethical approval for the Party Panel determinant studies was granted by the committee for Ethical Testing of Research (commissie Ethische Toetsing Onderzoek, cETO) of the Open University of the Netherlands, under files numbers U2015/03757/HVM and U2017/03081/FRO. The applications and approval letters are available at the Open Science Framework repository for the shared Party Panel resources at https://osf.io/7bv4w/.
 
+### Acknowledgements
+
+Party Panel is the result of the combination of energy, knowledge, skills and enthusiasm of a large group of people. Party Panel is funded by Celebrate Safe, with a subsidy from the Dutch Ministry of Health, Welfare and Sport. It is developed, executed, analysed and managed by Greater Good, with invaluable input from Jellinek Preventie. Without the Unity peers' unique insights, the questionnaires and collected data would never reach the richness and depth it does. The Celebrate Safe project committee, advisory board, and affiliated expert organisations also provided valuable feedback. Without the festival and event organisers, clubs, and other nightlife organisations, we would never have been able to reach all the participants that we did. `r waveSpecificThankYous ` So thank you all!!! We hope you can benefit from these results as well, and in general, that they contribute to improving our nightlife.
+
 ### How to use this report
 
 Because this report contains a lot of information, it is organised using tabs, which you see above this section. Click a tab to view the associated contents.

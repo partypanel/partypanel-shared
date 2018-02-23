@@ -78,6 +78,8 @@ ggSave <- function(filename=default_name(plot), plot = last_plot(),
 
 ```
 
+### Start and end dates of participation
+
 ```{r start-and-end-dates}
 
 allWavesVector <- unique(gsub("^t([^_]*)_.*", "\\1", names(fullDat)));
@@ -113,6 +115,8 @@ startEndDateDescription <-
 ```
 
 In total, `r nrow(startEndDates)` Party Panel waves have taken place. `r paste(startEndDateDescription, collapse=" ")`
+
+### Dropout
 
 ```{r dropout, results='asis'}
 
@@ -185,6 +189,8 @@ knitFig(tmpPlot,
 
 ```
 
+### Age
+
 ```{r age, results='asis'}
 
 tmpPlot <- ggEasyRidge(fullDat, rev(sort(grep('^t\\d\\d\\.\\d_age$', names(fullDat), value=TRUE))),
@@ -212,6 +218,7 @@ knitFig(tmpPlot,
 
 ```
 
+### Gender
 
 ```{r gender, results='asis'}
 
