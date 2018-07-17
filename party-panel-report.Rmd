@@ -58,6 +58,7 @@ safeRequire('xtable');       ### For pretty tables in R Markdown
 safeRequire('lubridate');    ### For extracting hours from datetimes
 safeRequire('tools');        ### For 'toTitleCase' function
 safeRequire('webshot');      ### For screenshotting htmlWidgets (diagrams)
+safeRequire('ggmap');        ### For mapping data to the map of the Netherlands
 
 ###########################################################################
 ### Party Panel settings
@@ -142,6 +143,16 @@ ggSave <- function(filename=default_name(plot), plot = last_plot(),
 theme_pp <- function() {
   return (theme_bw());
 }
+
+### For recoding frequencies
+defaultFrequencyCategories <-
+  paste0("0='Not at all'; 1:2='1-2 times'; 3:4='3-4 times'; 5:7='Every month'; ",
+         "8:20='Every few weeks'; 21:39='Every week'; ",
+         "40:65='Twice a week'; 66:Inf='More often'");
+defaultFrequencyCategories_nl <-
+  paste0("0='Niet'; 1:2='1-2 keer'; 3:4='3-4 keer'; 5:7='Maandelijks'; ",
+         "8:20='Elke paar weken'; 21:39='Elke week'; ",
+         "40:65='Twee keer per week'; 66:Inf='Vaker'");
 
 ### Get RColorBrewer palette Set1
 # cat0("c(", vecTxtQ(brewer.pal(9, 'Set1'), lastElements=0), ")");
@@ -672,10 +683,27 @@ dat$startday <- wday(dat$startdate);
 dat$submitday <- wday(dat$submitdate);
 
 ###############################################################################
+### Make bidimensional scales bidimensional
+###############################################################################
+
+if (exists('waveSpecificBidimensionalScales') &&
+    !is.null(waveSpecificBidimensionalScales)) {
+  for (i in seq_along(waveSpecificBidimensionalScales)) {
+
+    dat[, grep(waveSpecificBidimensionalScales[[i]][1],
+               names(dat), value=TRUE)] <-
+      dat[, grep(waveSpecificBidimensionalScales[[i]][1],
+               names(dat), value=TRUE)] +
+        as.numeric(waveSpecificBidimensionalScales[[i]][2]);
+  }
+}
+
+###############################################################################
 ### Process frequency variables (they consist of two answers each)
 ###############################################################################
 
 frequencyVarNames <- list();
+frequencyCategoryVarNames <- list();
 
 for (currentFrequencyVar in frequencyVars) {
   frequencyVarNames[[currentFrequencyVar]] <- vector();
@@ -687,13 +715,26 @@ for (currentFrequencyVar in frequencyVars) {
             "find no matches when trying to compute the multiplication!");
   } else {
     dat <- cbind(dat, as.data.frame(lapply(specifiers, function(x) {
-      ### Add final variable name to the list of vectors for easy acces in analyses
+      ### Add final variable name to the list of vectors for easy access in analyses
       frequencyVarNames[[currentFrequencyVar]] <<-
         c(frequencyVarNames[[currentFrequencyVar]], paste0(currentFrequencyVar, "_", x));
       ### Compute product and store it in the dataframe
       return(structure(list(dat[, paste0(currentFrequencyVar, "Period_", x)] *
                             dat[, paste0(currentFrequencyVar, "Nr_", x, "_nr")]),
                        names=paste0(currentFrequencyVar, "_", x)));
+    })));
+    dat <- cbind(dat, as.data.frame(lapply(specifiers, function(x) {
+      ### Add variable name of categorized variable to the dataframe
+      frequencyCategoryVarNames[[currentFrequencyVar]] <<-
+        c(frequencyCategoryVarNames[[currentFrequencyVar]], paste0(currentFrequencyVar, "_cat_", x));
+      ### Compute product and store it in the dataframe
+      return(structure(list(car::Recode(dat[, paste0(currentFrequencyVar, "_", x)],
+                                        as.factor=TRUE,
+                                        defaultFrequencyCategories,
+                                        levels=gsub(".*'(.*)'.*",
+                                                    "\\1",
+                                                    unlist(strsplit(defaultFrequencyCategories, ';'))))),
+                       names=paste0(currentFrequencyVar, "_cat_", x)));
     })));
   }
 }
@@ -813,14 +854,29 @@ ggSave(recruitmentInfo$plots$absoluteDropout,
        file = file.path(workingPath, "absolute dropout.png"),
        height=6, width=18);
 
+participantRecruitmentOverTime <- 
+  ggplot(dat, aes(x=startdate)) +
+  geom_histogram(binwidth=60*60*24) +
+  scale_x_datetime(date_breaks="1 day") +
+  theme_minimal() +
+  theme(axis.text.x  = element_text(angle=75, vjust=1));
+
 ```
 
 Party Panel participants were recruited primarily through social media. The Dutch Celebrate Safe campaign (see <http://celebratesafe.nl>), Unity (see <http://unity.nl>), as well as related organisations such as event organisers that were partnered with Celebrate Safe promoted Party Panel through Facebook and Twitter posts. In addition, visitors to the Unity website were shown a div pop-up.
 
 This figure shows participant recruitment over time:
 
-```{r recruitment-over-time, results="asis"}
+
+```{r participant-recruitment-over-time, results='asis'}
+
+knitFig(plotToDraw=participantRecruitmentOverTime,
+        figWidth = min(2*c(defaultFigWidth, maxFigWidth)),
+        figHeight = min(1.5*c(defaultFigHeight, maxFigHeight)),
+        figCaption = "Participants starting the survey at different dates.");
+
 #   print(suppressWarnings(recruitmentInfo$plots$temporalProgression));
+
 ```
 
 During this time, `r nrow(dat);` participants opened the first page containing the Informed Consent. From this point, the progression through the survey was as follows:
@@ -829,7 +885,7 @@ During this time, `r nrow(dat);` participants opened the first page containing t
 
   knitFig(plotToDraw = recruitmentInfo$plots$relativeDropout,
           figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
-          figHeight = min(c(2*defaultFigHeight, maxFigHeight)),
+          figHeight = min(c(1.5*defaultFigHeight, maxFigHeight)),
           figCaption = "Dropout throughout the questionnaire.");
 
   pander(recruitmentInfo$progressiveDropout);
@@ -837,28 +893,6 @@ During this time, `r nrow(dat);` participants opened the first page containing t
 ```
 
 Of the `r sum(!is.na(dat$informedConsent));` participants answering the Informed Consent, `r sum(dat$informedConsent == "Nee, ik wil toch niet meedoen.", na.rm=TRUE);` participants answered negatively. Of these, `r length(as.character(na.omit(dat$noConsentReason)))` provided a reason. Specifically, the reasons provided were `r vecTxt(as.character(na.omit(dat$noConsentReason)), useQuote='"');`.
-
-<!-- Dropout appears unrelated to date:
-
-```{r results="asis"}
-#  print(suppressWarnings(recruitmentInfo$plots$dropoutOverTime));
-```
-
-In addition, no clear patterns regarding day of week and time of day emerged (note that these data are also confounded by the moments social media shared links to Party Panel):
-
-```{r fig.width=12}
-#  grid.arrange(recruitmentInfo$plots$start.combined, recruitmentInfo$plots$submit.combined, ncol=2);
-```
-
-Participants were recruited from all over the Netherland, mostly the most densely populated area (obviously) known as the 'Randstad', which consists of the cities Amsterdam, Rotterdam, The Hague and Utrecht as well as the surrounding cities and villages.
-
--->
-
-```{r participant-origins, results="asis"}
-#  if (exists('participantOrigins')) {
-#    print(participantOrigins);
-#  }
-```
 
 `r waveSpecificRandomNumberStatement`
 
@@ -870,6 +904,10 @@ Participants were recruited from all over the Netherland, mostly the most densel
 ## Participants (sample description)
 
 ```{r sample-description, results='asis', message=FALSE}
+
+########################################################################
+### Gender
+########################################################################
 
 pandoc.header("Gender", 3);
 
@@ -893,10 +931,15 @@ ggSave(plot = genderBar,
        file = file.path(workingPath, "gender (bar).png"),
        height=4, width=18);
 
+########################################################################
+### Age
+########################################################################
+
 pandoc.header("Age", 3);
 
 agePowerHist <- powerHist(dat$age,
                           xLabel = "Age")$plot + xlim(0, 80);
+ageDescr <- descr(round(dat$age));
 
 knitFig(plotToDraw = agePowerHist,
         figWidth = defaultFigWidth,
@@ -915,6 +958,7 @@ for (currentFreqVar in names(frequencyVarNames)) {
   if (length(frequencyVarNames[[currentFreqVar]]) == 0) {
     stop("No variables matching regex '", currentFreqVar, "'.");
   } else if (all(unlist(frequencyVarNames[[currentFreqVar]]) %in% names(dat))) {
+    
     ### Diamond plots
     freqMeansDiamondPlots[[currentFreqVar]] <-
       meansDiamondPlot(dat, items=unlist(frequencyVarNames[[currentFreqVar]]));
@@ -926,6 +970,8 @@ for (currentFreqVar in names(frequencyVarNames)) {
                   xlab='Frequency (times in the last half year)') +
       scale_x_continuous(sec.axis=dup_axis(breaks=c(6, 26, 182.5),
                                            labels=c("maand", "week", "dag")));
+
+    pandoc.header("Diamond and ridgeline plots", 4);
     
     knitFig(plotToDraw = freqRidgelinePlots[[currentFreqVar]],
             figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
@@ -935,9 +981,73 @@ for (currentFreqVar in names(frequencyVarNames)) {
     ggSave(plot = freqRidgelinePlots[[currentFreqVar]],
            file = file.path(workingPath, paste0(currentFreqVar, " (ridgeline).png")),
            height=2.54 * defaultFigHeight, width=2 * 2.54 * defaultFigWidth);
+
+    pandoc.header("Frequencies and easybarplots", 4);
+    
+    multiVarFreq(dat, items=frequencyCategoryVarNames$goingOutFreq, sortByMean=FALSE);
+
+    ggEasyBar(dat, items=frequencyCategoryVarNames$goingOutFreq, sortByMean=FALSE);
     
   } else {
     stop("Not all variables matching regex '", currentFreqVar, "' exist in dataframe.");
+  }
+}
+
+pander(ageDescr);
+
+########################################################################
+### Geographical distribution
+########################################################################
+
+### Merge data with postcode latitude and longitude
+dat <- merge(x=dat, y=pcDat, by='postcode', all.x=TRUE);
+
+### Build temporary dataframe for mapping the numbers of participants
+tmpDat <- ddply(dat[, c('postcode', 'lat', 'lon')], .(postcode), function(dat) {
+  return(data.frame(n=nrow(dat),
+                    lat=mean(dat$lat, na.rm=TRUE),
+                    lon=mean(dat$lon, na.rm=TRUE)));
+});
+
+### Remove people who didn't answer or didn't get to this question
+tmpDat <- tmpDat[!is.na(tmpDat$lat), ];
+
+### Get map of the Netherlands from Google Maps (skip if there's no
+### internet)
+if (require('RCurl')) {
+  if (url.exists('partypanel.nl')) {
+    if (!exists('netherlands')) {
+      netherlands <<- get_map(location = c(lon = 5.2507557, lat = 52.1680345),
+                              color = "color",
+                              source = "google",
+                              maptype = "roadmap",
+                              zoom = 7);
+    }
+
+    ### Map the resulting locations to the map as circles.
+    participantOriginsEmpty <- ggmap(netherlands,
+                                     extent='device',
+                                     darken=c(0, "#172f47"));
+
+    participantOrigins <- participantOriginsEmpty +
+      geom_point(data=tmpDat,
+                 aes(x=lon, y=lat, size=n),
+                 color='red', alpha=.5, stroke=1) +
+      scale_size(range=c(5, 40)) +
+      theme(legend.position="none")
+    
+    ggSave(plot=participantOrigins,
+       file.path(workingPath,
+                 paste0("partypanel-", waveNumber, "-geography.svg")),
+       width=20,
+       height=20,
+       bg = "transparent");
+
+    knitFig(plotToDraw = participantOrigins,
+            figWidth = 16,
+            figHeight = 16,
+            figCaption = paste("Geographical distribution of Party Panel participants"));
+    
   }
 }
 
@@ -948,13 +1058,128 @@ for (currentFreqVar in names(frequencyVarNames)) {
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
 
-## Behavioral determinants
+## Behavioral determinants {.tabset}
+
+This section is quite full, and is therefore again organised using tabs. The first tab ("CIBER plots and how to read them") contains an introduction to and explanation of the data visualisation used to explore determinant importance. The second tab ("Determinant structures") shows the theoretical determinant structure that these determinant importance analyses are based on. The third tab ("Determinant importance"), finally, shows the CIBER plots for the determinants measured in this Party Panel wave.
+
+### CIBER plots and how to read them
+
+When thinking about which determinants and sub-determinants to target in a behavior change intervention, it is important to consider both the univariate distributions (i.e. means) and the associations to behavior and determinants of behavior (such as intention or other theoretically relevant determinants; Peters, 2012). Usually, means and correlation coefficients are used to inspect these, but it is important to realise that sample estimates are subject to random variability, and therefore, will be different in different samples. Instead of using point estimates, therefore, it is better to use confidence intervals (Crutzen, Peters &  Noijen, 2017).
+
+Confidence Interval Based Estimation of Relevance plots (CIBER plots) facilitate inspection of many data points and confidence intervals simultaneously (Crutzen, Peters &  Noijen, 2017). Because CIBER plots are a relatively new development, we will briefly explain how to read them here using simulated data.
+
+In this fictional example, we measured the determinants of doing a determinant study when developing an intervention. In this example, we measured three sub-determinants of attitude (called beliefs):
+
+```{r CIBERplot-explanation, results='asis', message=FALSE}
+
+exampleData <- simDataSet(200,
+                          c('firstBelief',
+                            'secondBelief',
+                            'thirdBelief',
+                            'attitude',
+                            'intention'),
+                          correlations=c(-.3, .3),
+                          specifiedCorrelations=list(c('firstBelief',
+                                                       'attitude',
+                                                       .42),
+                                                     c('thirdBelief',
+                                                       'attitude',
+                                                       .57),
+                                                     c('firstBelief',
+                                                       'intention',
+                                                       .39),
+                                                     c('thirdBelief',
+                                                       'intention',
+                                                       .53)),
+                          means=c(4,   ### First belief
+                                  2,     ### Second belief
+                                  6,   ### Third belief
+                                  4,     ### Attitude
+                                  4),  ### Intention
+                          range=c(1,7),
+                          seed=19811027,
+                          empirical=FALSE,
+                          silent=TRUE);
+
+### Skew second belief to the right
+exampleData$secondBelief <- log(exampleData$secondBelief, 2);
+
+### Round numbers
+exampleData <- round(exampleData);
+
+### Correct for values that are too high or too low
+exampleData[exampleData<1] <- 1;
+exampleData[exampleData>7] <- 7;
+
+exampleCIBER <- 
+  CIBER(exampleData,
+        determinants=c('firstBelief',
+                       'secondBelief',
+                       'thirdBelief'),
+        subQuestions=c('A determinant study provides ...\ninsight into why people\nexhibit the target behavior.',
+                       'The effect of an intervention ...\non whether the right\ndeterminants are targeted.',
+                       'Interventions that are based on\ndeterminant studies are, because of that, ...'),
+        leftAnchors=c("Absolutely\nno",
+                      "Does not\ndepend",
+                      "Less\neffective"),
+        rightAnchors=c("A lot\nof",
+                       "Depends\na lot",
+                       "More\neffective"),,
+        targets=c('attitude', 'intention'),
+        drawPlot = FALSE);
+
+knitFig(plotToDraw = 'exampleCIBER',
+        template = pp_knitFig_determinantTemplate,
+        figWidth = attr(exampleCIBER, 'width'),
+        figHeight = attr(exampleCIBER, 'height') + .5,
+        figCaption = "A fictional example of a CIBER plot.",
+        drawPlot = TRUE,
+        headerName = "CIBER plot example",
+        headerLevel = 4);
+
+```
+
+##### Explaining the plot title
+
+The title doubles as a legend: each higher-level determinants (called a 'target' in CIBER plots) is designated a color that is used in the plot. In this case, attitude is red and intention is blue. These colors are used in the right-hand panel of the plot (see below).
+
+The title also shows the confidence interval (by default the 95% confidence interval) for the proportion of explained variance (or <sup>2</sup> for each target as explained by the (sub-) determinants in the plot (in this case, by the three beliefs).
+
+##### Explaining the left-hand panel
+
+The left-hand panel in a CIBER plot shows the univariate distributions of each (sub-)determinant, in these case the three beliefs. It shows both the individual participants' scores as well as the confidence interval for the mean as diamonds (by default, CIBER plots show 99.99% confidence intervals). The diamons are colored as a function of the relative position of the mean:
+
+- if participants mostly score towards the bottom of the scale (a low mean), the diamonds are red;
+- if participants mostly score around the middle, or if they score all over the place (in both cases the mean is in the middle), the diamonds are blue; and
+- if participants score towards the top of the scale (a high mean), the diamonds are green.
+
+Note that in this fictional example, it's quite clear that the data were simulated: usually, participants don't all score so closely to the mean.
+
+##### Explaining the right-hand panel
+
+The right-hand panel in a CIBER plot shows the associations to the higher-order determinants, in this case attitude and intention (of course, you could also plot associations to behavior here). In this panel, individual scores are not shown, only the diamonds representing the confidence intervals for the correlation coefficicients (by default, 95% confidence intervals).
+
+The strokes (borders) of these diamonds indicate which target each diamond represents. In this example, the red diamonds represent the beliefs' associations with attitude, and the blue diamonds represent the beliefs' associations with intention (see the section on the plot title, above).
+
+The fill (inside color) of these diamonds is also a function of how strong the association is:
+
+- diamonds representing very strong negative associations (correlations approaching -1) are filled with a red color;
+- diamonds representing no association (correlations around 0) are filled with a grey color; and
+- diamonds representing very strong associations (correlations approaching 1) are filled with a green color.
+
+#### Interpretation of this CIBER plot
+
+In this fictional sample, the responses to the first belief show that participants do not strongly believe that a determinant study provides a lot of insight into why people exhibit the target behavior. This belief is quite strongly related to attitude and intention, and therefore this seems a viable intervention target. If this were a real scenario, and we would want to promote the use of determinant studies, succesfully changing this belief would likely contribute to behavior change.
+
+The second belief is held by even fewer people: these fictional participants believe that the effect of an intervention does not depend on whether the right determinants are targeted. Interestingly, the right-hand panel shows that this belief is not strongly associated to attitude and intention. It is possible that this is a consequence of the skewed distribution: almost all participants score 1 or 2, which means that there is very little variation, which means that the correlation cannot achieve a very high value. However, if we assume for the moment that the weak association of this belief to attitude and intention is not a statistical artifact, we would conclude that changing this belief would be unlikely to contribute to behavior change.
+
+The third belief is already held by most participants: the mean is between 5 and 6 in a 7-point scale, so most people believe that interventions that are based on determinant studies are more effective because they are (this is an unrealistic contrast with the second belief; these *are* simulated data, after all). This belief was also quite strongly associated to attitude and behavior. Since most people already hold this belief to some degree, an intervention would focus on people who answered in the middle of the scale (i.e. who think that it doesn't matter much for effectiveness whether an intervention is based on a determinant study).
 
 ### Determinant structures
 
 These are visualisations of the determinant structures of the behaviors in this Party Panel wave. The associations of the sub-determinants in each of these determinants with the overarching determinants and with intention will then be visualised using CIBER plots.
 
-```{r ciber-plot-generation}
+```{r ciber-plot-generation, screenshot.force=TRUE}
 
 ###############################################################################
 ### For each behavior, process the determinant structure to add CIBER plots
@@ -963,7 +1188,7 @@ These are visualisations of the determinant structures of the behaviors in this 
 for (currentDetStruct in detStruct) {
   ### Add determinant importance plots
   detStructCIBER(currentDetStruct, dat=dat);
-}
+} 
 
 ### screenshot.force = TRUE
 
@@ -1157,7 +1382,17 @@ for (currentVar in names(waveSpecificVariableList)) {
   pandoc.header(currentVar, level=3);
   
   ### Get variable name(s)
-  currentVarNameList <- grep(waveSpecificVariableList[[currentVar]]$regex, names(dat), value=TRUE);
+  tryCatch({
+    currentVarNameList <- grep(waveSpecificVariableList[[currentVar]]$regex,
+                               names(dat),
+                               value=TRUE,
+                               perl=TRUE);
+  }, error = function(e) {
+    cat0("This entry in the list of wave specific variables had a regular expression that caused an error. The error is:\n\n",
+         e$message, "\n\n");
+    cat0("To troubleshoot, see `waveSpecificVarnameRegExPairs` in 'partypanel-", waveNumber, "-wave-specific-preparation.Rmd'.\n");
+    currentVarNameList <- c();
+  });
       
   plotWidthMultiplier <- ifelse(is.null(waveSpecificVariableList[[currentVar]]$plotWidthMultiplier),
                                 1, waveSpecificVariableList[[currentVar]]$plotWidthMultiplier);
@@ -1375,6 +1610,70 @@ for (currentVar in names(waveSpecificVariableList)) {
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
+
+## Input for infographic
+
+We aim to have an infographic made for each Party Panel wave, to present some of the most important findings to the participants and members of the general public. This tab contains the information sent to the designer for each infographic.
+
+```{r generic-infographic, results="asis"}
+
+pandoc.header("Age and gender", level=3);
+
+pandoc.header("Age", level=4);
+
+pander(ageDescr);
+
+pandoc.p(paste("The mode of age (i.e. the most common age) is ",
+               vecTxt(modus(round(dat$age))),
+               "year old."));
+
+pandoc.header("Gender", level=4);
+
+pander(freq(dat$gender));
+
+pandoc.header("Education level", level=3);
+
+pander(freq(dat$education));
+
+if (!is.null(participantOrigins)) {
+  pandoc.header("Geographical distribution", level=3);
+  knitFig(plotToDraw = participantOrigins,
+          figWidth = 16,
+          figHeight = 16,
+          figCaption = paste("Geographical distribution of Party Panel participants"));
+}
+
+pandoc.header("Nightlife attendance", level=3);
+
+pander(multiVarFreq(dat, items=frequencyCategoryVarNames$goingOutFreq, sortByMean=FALSE));
+
+```
+
+```{r wave-specific-infographic, results="asis", child=file.path(scriptPath, paste0("partypanel-", waveNumber, "-wave-specific-infographic.Rmd"))}
+```
+
+<!--------------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+
+## References
+
+This is a list of literature that is either cited in this Party Panel report, or useful to inspect as background for readers not familiar with behavior change.
+
+Two accessible papers about two important steps in behavior change (*understanding* the behavior and *changing* the behavior) are:
+
+- Peters, G.-J. Y. (2014). [A practical guide to effective behavior change: How to identify what to change in the first place.](https://ehps.net/ehp/index.php/contents/article/download/ehp.v16.i5.p142/7) *European Health Psychologist, 16* (5), 142-155. 
+
+- Kok, G. (2014). [A practical guide to effective behavior change: How to apply theory- and evidence-based behavior change methods in an intervention.](https://ehps.net/ehp/index.php/contents/article/download/ehp.v16.i5.p156/8) *European Health Psychologist, 16* (5), 156–170.
+
+A list of methods for behavior change with their parameters for effectiveness, organised by determinant they can target, is available as supplemental material with the following paper:
+
+- Kok, G., Gottlieb, N. H., Peters, G.-J. Y., Mullen, P. D., Parcel, G. S., Ruiter, R. A. C., … Bartholomew, L. K. (2016). A taxonomy of behavior change methods: an Intervention Mapping approach. Health Psychology Review, 10(3), 297–312. http://doi.org/10.1080/17437199.2015.1077155 (a version of this paper with the tables with method appended is available at https://osf.io/ng3xh)
+
+A paper explaining the plots we use in these reports to show determinant relevance is at:
+
+- Crutzen, R., Peters, G.-J. Y., & Noijen, J. (2017). Using Confidence Interval-Based Estimation of Relevance to select social-cognitive determinants for behaviour change interventions. Frontiers in Public Health, 5(July), 1–9. http://doi.org/10.3389/fpubh.2017.00165
 
 ## Appendices
 
