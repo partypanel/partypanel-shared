@@ -7,22 +7,29 @@ output:
     toc: false
     css: "party panel reports.css"
 params:
-  #waveNumber: "15.1"
+  #waveNumber: 15.1
   #waveNumber: 16.1
-  waveNumber: 17.1
+  #waveNumber: 17.1
+  waveNumber: 18.1
   #basePath: 'B:/Data/research/party panel/partypanel-15.1'
   #basePath: 'B:/Data/research/party panel/partypanel-16.1'
-  basePath: 'B:/Data/research/party panel/partypanel-17.1'
+  #basePath: 'B:/Data/research/party panel/partypanel-17.1'
+  basePath: 'B:/Data/research/party panel/partypanel-18.1'
   sharedPath: 'B:/Data/research/party panel/partypanel-shared'
   #surveyId: 652829
   #surveyId: 321858
-  surveyId: 559363
+  #surveyId: 559363
+  surveyId: 180103
   #startDate: '2015-06-28'
   #startDate: '2016-05-27'
-  startDate: '2017-04-20'
+  #startDate: '2017-04-20'
+  startDate: '2018-07-04'
   #behaviors: ['highDose', 'strngXTC', 'testing']
-  behaviors: ['epc', 'epw', 'epb']
+  #behaviors: ['epc', 'epw', 'epb']
+  behaviors: ['sibe', 'siba', 'sibd']
   categoricalQuestions: ['informedConsent', 'gender', 'hasJob', 'currentEducation', 'prevEducation', 'country']
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r pp-parse-params, echo=FALSE}
@@ -38,7 +45,7 @@ behaviors <- params$behaviors;
 categoricalQuestions <- params$categoricalQuestions;
 ```
 
-```{r general-preparation, echo=FALSE}
+```{r general-preparation, echo=FALSE, warning=FALSE, message=FALSE}
 
 #source("B:/Data/statistics/R/library/update-UFS.R");
 require('userfriendlyscience', quietly=TRUE);
@@ -51,6 +58,7 @@ safeRequire('DiagrammeR');   ### For the determinant structures
 safeRequire('data.tree');    ### For the 'plot.Node'
 safeRequire('knitr');        ### To knit the Rmarkdown
 safeRequire('plyr');         ### For data manipulation
+safeRequire('dplyr');        ### Also for data manipulation (case_when)
 safeRequire('car');          ### For Recode
 safeRequire('digest');       ### To make MD5 hashes
 safeRequire('pander');       ### For pretty R Markdown object printing
@@ -58,6 +66,7 @@ safeRequire('xtable');       ### For pretty tables in R Markdown
 safeRequire('lubridate');    ### For extracting hours from datetimes
 safeRequire('tools');        ### For 'toTitleCase' function
 safeRequire('webshot');      ### For screenshotting htmlWidgets (diagrams)
+safeRequire('summarytools'); ### For an overview of the dataset
 safeRequire('ggmap');        ### For mapping data to the map of the Netherlands
 
 ###########################################################################
@@ -145,11 +154,11 @@ theme_pp <- function() {
 }
 
 ### For recoding frequencies
-defaultFrequencyCategories <-
+defaultfrequencyCategories <-
   paste0("0='Not at all'; 1:2='1-2 times'; 3:4='3-4 times'; 5:7='Every month'; ",
          "8:20='Every few weeks'; 21:39='Every week'; ",
          "40:65='Twice a week'; 66:Inf='More often'");
-defaultFrequencyCategories_nl <-
+defaultfrequencyCategories_nl <-
   paste0("0='Niet'; 1:2='1-2 keer'; 3:4='3-4 keer'; 5:7='Maandelijks'; ",
          "8:20='Elke paar weken'; 21:39='Elke week'; ",
          "40:65='Twee keer per week'; 66:Inf='Vaker'");
@@ -159,18 +168,15 @@ defaultFrequencyCategories_nl <-
 palette_pp <- c('#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00',
                 '#FFFF33', '#A65628', '#F781BF', '#999999');
 
-pp_knitFig_determinantTemplate <- "\n\n```{r {{chunkName}}, fig.height={{figHeight}}, fig.width={{figWidth}}, fig.cap='{{figCaption}}', echo=FALSE, cache=FALSE, results='asis'}
+pp_knitFig_determinantTemplate <- paste0("\n\n```{r {{chunkName}}, fig.height={{figHeight}}, fig.width={{figWidth}}, fig.cap='{{figCaption}}', echo=FALSE, cache=FALSE, results='asis'}
   cat('\n\n');
   pandoc.p('');
   cat('\n\n');
-  if ({{headerLevel}} < 7) {
-    pandoc.header('{{headerName}}', level={{headerLevel}});
-  } else {
-    cat('<h{{headerLevel}}>{{headerName}}</h{{headerLevel}}>');
-  #pandoc.p(pandoc.strong.return('{{headerName}}'));
-  }
+  cat('<h{{headerLevel}}>{{headerName}}</h{{headerLevel}}>');
   cat('\n\n');
-  pandoc.p(paste0('These are the results for question (or rather, variable) \"{{headerName}}\".'));
+  cat(paste0('\n\nThese are the results for question ",
+             "(or rather, variable) \"{{headerName}}\".\n\n'));",
+  "
   cat('\n\n');
   if ({{drawPlot}}) {
     grid.newpage();
@@ -179,7 +185,24 @@ pp_knitFig_determinantTemplate <- "\n\n```{r {{chunkName}}, fig.height={{figHeig
   cat('\n\n');
   pandoc.p('');
   cat('\n\n');
-```\n\n";
+```\n\n");
+
+pp_knitFig_determinantTemplate_sampleSize <- paste0("\n\n```{r {{chunkName}}, fig.height={{figHeight}}, fig.width={{figWidth}}, fig.cap='{{figCaption}}', echo=FALSE, cache=FALSE, results='asis'}
+  cat('\n\n');
+  pandoc.p('');
+  cat('\n\n');
+  cat('<h{{headerLevel}}>{{headerName}}</h{{headerLevel}}>');
+  cat('\n\n');
+  cat0('\n\nThese are the results for question (or rather, variable) \"{{headerName}}\" ({{sampleSize}} participants provided data).\n\n');
+  cat('\n\n');
+  if ({{drawPlot}}) {
+    grid.newpage();
+    grid.draw({{plotToDraw}});
+  }
+  cat('\n\n');
+  pandoc.p('');
+  cat('\n\n');
+```\n\n");
 
 ### For printing single question easy bars
 singleQuestionEasyBar <- function(item,
@@ -405,7 +428,8 @@ dat <- dat.raw <-
                        datafileRegEx = dataFileRegEx,
                        scriptfile = file.path(dataPath,
                                               dataLoadScriptName),
-                       categoricalQuestions = categoricalQuestions);
+                       categoricalQuestions = categoricalQuestions,
+                       encoding="UTF-8");
 
 ###########################################################################
 ### Prepare Party Panel data for verifying and preprocessing
@@ -423,7 +447,16 @@ if (exists('waveSpecificVarnameRegExPairs') && !is.null(waveSpecificVarnameRegEx
 }
 
 ### Process the variables labels (subquestions, anchors etc)
-labelDf <- processLSvarLabels(dat, varnameRegExPairs = varnameRegExPairs);
+labelDf <- processLSvarLabels(dat,
+                              varnameRegExPairs = varnameRegExPairs,
+                              leftAnchorRegExPairs = list(c(".*[[:graph:]]([A-Z][a-z][^|]*)\\|(.+)",
+                                                            "\\1"),
+                                                          c(".*\\.\\.\\.([^|]+)\\|(.+)",
+                                                            "\\1")),
+                              rightAnchorRegExPairs = list(c(".*[[:graph:]]([A-Z][a-z][^|]*)\\|(.+)",
+                                                             "\\2"),
+                                                           c(".*\\.\\.\\.([^|]+)\\|(.+)",
+                                                             "\\2")));
 
 ### Replace variable names with the versions with the
 ### inserted underscores
@@ -512,12 +545,14 @@ Gedragsverandering is een subdomein van de psychologie. Naast grondige kennis va
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
 
-## Data integrity & cleaning
+## Data integrity & cleaning {.tabset}
+
+### Data preprocessing
 
 ```{r wave-specific-data-preprocessing, child=file.path(scriptPath, paste0("partypanel-", waveNumber, "-wave-specific-preprocessing.Rmd"))}
 ```
 
-```{r general-data-preprocessing, results='asis'}
+```{r general-data-preprocessing, results='asis', message=FALSE, warning=FALSE}
 
 ###########################################################################
 ### Verify (and correct) classes of variables
@@ -730,10 +765,10 @@ for (currentFrequencyVar in frequencyVars) {
       ### Compute product and store it in the dataframe
       return(structure(list(car::Recode(dat[, paste0(currentFrequencyVar, "_", x)],
                                         as.factor=TRUE,
-                                        defaultFrequencyCategories,
+                                        defaultfrequencyCategories,
                                         levels=gsub(".*'(.*)'.*",
                                                     "\\1",
-                                                    unlist(strsplit(defaultFrequencyCategories, ';'))))),
+                                                    unlist(strsplit(defaultfrequencyCategories, ';'))))),
                        names=paste0(currentFrequencyVar, "_cat_", x)));
     })));
   }
@@ -767,7 +802,7 @@ if (exists('waveSpecificScales') && !is.null(waveSpecificScales)) {
 
 ```
 
-```{r data-integrity, results='asis' }
+```{r data-integrity, results='asis', message=FALSE, warning=FALSE}
 
 dat <- checkDataIntegrity(c(list(c('^age$', '<80')),
                             waveSpecificDataIntegrityChecks),
@@ -837,9 +872,15 @@ Furthermore, `r nrOfDeletedParticipants;` participants were among the `r 100*thr
 
 `r length(rowsWithTooManyIncorrectClasses);` participants (rows `r vecTxt(rowsWithTooManyIncorrectClasses);`) had more than `r maxIncorrectClassAnswers;` answers that fell into the wrong class (e.g. typing letters where numbers were required) and were also removed.
 
+### Summary of dataset
+
+```{r summarytools-overview, results="asis", message=FALSE, warning=FALSE}
+dfSummary(dat, plain.ascii = FALSE, style = "grid");
+```
+
 ## Recruitment
 
-```{r recruitment-info}
+```{r recruitment-info, message=FALSE, warning=FALSE}
 
 recruitmentInfo <-
   processLimeSurveyDropouts(dat$lastpage,
@@ -859,7 +900,7 @@ participantRecruitmentOverTime <-
   geom_histogram(binwidth=60*60*24) +
   scale_x_datetime(date_breaks="1 day") +
   theme_minimal() +
-  theme(axis.text.x  = element_text(angle=75, vjust=1));
+  theme(axis.text.x  = element_text(angle=75, vjust=0));
 
 ```
 
@@ -867,12 +908,11 @@ Party Panel participants were recruited primarily through social media. The Dutc
 
 This figure shows participant recruitment over time:
 
-
-```{r participant-recruitment-over-time, results='asis'}
+```{r participant-recruitment-over-time, results='asis', message=FALSE, warning=FALSE}
 
 knitFig(plotToDraw=participantRecruitmentOverTime,
-        figWidth = min(2*c(defaultFigWidth, maxFigWidth)),
-        figHeight = min(1.5*c(defaultFigHeight, maxFigHeight)),
+        figWidth = min(1.5*c(defaultFigWidth, maxFigWidth)),
+        figHeight = min(c(defaultFigHeight, maxFigHeight)),
         figCaption = "Participants starting the survey at different dates.");
 
 #   print(suppressWarnings(recruitmentInfo$plots$temporalProgression));
@@ -881,7 +921,7 @@ knitFig(plotToDraw=participantRecruitmentOverTime,
 
 During this time, `r nrow(dat);` participants opened the first page containing the Informed Consent. From this point, the progression through the survey was as follows:
 
-```{r progression-through-survey, results="asis"}
+```{r progression-through-survey, results="asis", message=FALSE, warning=FALSE}
 
   knitFig(plotToDraw = recruitmentInfo$plots$relativeDropout,
           figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
@@ -896,6 +936,45 @@ Of the `r sum(!is.na(dat$informedConsent));` participants answering the Informed
 
 `r waveSpecificRandomNumberStatement`
 
+```{r recruitment-devices, results='asis', message=FALSE, warning=FALSE}
+
+if ('screenWidth' %in% names(dat) ||
+    'mobile' %in% names(dat) ||
+    'userAgent' %in% names(dat)) {
+
+  cat0("\n\n### Devices\n\n");
+
+  if ('mobile' %in% names(dat)) {
+    cat0("\n\n#### Device type\n\n");
+    kable(userfriendlyscience::freq(dat$mobile)$dat);
+  }
+  
+  if ('screenWidth' %in% names(dat)) {
+    cat0("\n\n#### Screen width\n\n");
+    screenWidthPowerHist <-
+      powerHist(dat$screenWidth,
+                xLabel = "Screen width")$plot;
+    knitFig(plotToDraw = screenWidthPowerHist,
+            figWidth = defaultFigWidth,
+            figHeight = defaultFigHeight,
+            figCaption = "Histogram for screen width distribution.");
+  }
+
+  if ('userAgent' %in% names(dat)) {
+    cat0("\n\n#### User agent\n\n");
+    dat$userAgent_clean <-
+      case_when(grepl("Android", dat$userAgent, fixed=TRUE) ~ "Android",
+                grepl("Max OS X", dat$userAgent, fixed=TRUE) ~ "Apple",
+                grepl("iPhone", dat$userAgent, fixed=TRUE) ~ "iPhone",
+                grepl("Windows Phone", dat$userAgent, fixed=TRUE) ~ "Windows Phone",
+                TRUE ~ "Other");
+    kable(userfriendlyscience::freq(dat$userAgent_clean)$dat);
+  }
+  
+}
+
+```
+
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
 <!--------------------------------------------------------------------->
@@ -903,7 +982,7 @@ Of the `r sum(!is.na(dat$informedConsent));` participants answering the Informed
 
 ## Participants (sample description)
 
-```{r sample-description, results='asis', message=FALSE}
+```{r sample-description, results='asis', message=FALSE, warning=FALSE}
 
 ########################################################################
 ### Gender
@@ -925,7 +1004,7 @@ knitFig(plotToDraw = genderBar,
         figHeight = defaultFigHeight,
         figCaption = "Bar chart for gender.");
 
-pander(freq(dat$gender));
+kable(userfriendlyscience::freq(dat$gender)$dat);
 
 ggSave(plot = genderBar,
        file = file.path(workingPath, "gender (bar).png"),
@@ -939,7 +1018,7 @@ pandoc.header("Age", 3);
 
 agePowerHist <- powerHist(dat$age,
                           xLabel = "Age")$plot + xlim(0, 80);
-ageDescr <- descr(round(dat$age));
+ageDescr <- userfriendlyscience::descr(round(dat$age));
 
 knitFig(plotToDraw = agePowerHist,
         figWidth = defaultFigWidth,
@@ -962,12 +1041,12 @@ for (currentFreqVar in names(frequencyVarNames)) {
     ### Diamond plots
     freqMeansDiamondPlots[[currentFreqVar]] <-
       meansDiamondPlot(dat, items=unlist(frequencyVarNames[[currentFreqVar]]));
-    #print(freqMeansDiamondPlots[[currentFreqVar]]);
+    #print(userfriendlyscience::freqMeansDiamondPlots[[currentFreqVar]]);
 
     freqRidgelinePlots[[currentFreqVar]] <-
       ggEasyRidge(dat,
                   items=frequencyVarNames[[currentFreqVar]],
-                  xlab='Frequency (times in the last half year)') +
+                  xlab='frequency (times in the last half year)') +
       scale_x_continuous(sec.axis=dup_axis(breaks=c(6, 26, 182.5),
                                            labels=c("maand", "week", "dag")));
 
@@ -994,6 +1073,14 @@ for (currentFreqVar in names(frequencyVarNames)) {
 }
 
 pander(ageDescr);
+
+########################################################################
+### Sexual preference
+########################################################################
+
+if ('sexualPreference' %in% names(dat)) {
+  kable(userfriendlyscience::freq(dat$sexualPreference)$dat);
+}
 
 ########################################################################
 ### Geographical distribution
@@ -1070,7 +1157,7 @@ Confidence Interval Based Estimation of Relevance plots (CIBER plots) facilitate
 
 In this fictional example, we measured the determinants of doing a determinant study when developing an intervention. In this example, we measured three sub-determinants of attitude (called beliefs):
 
-```{r CIBERplot-explanation, results='asis', message=FALSE}
+```{r CIBERplot-explanation, results='asis', message=FALSE, warning=FALSE}
 
 exampleData <- simDataSet(200,
                           c('firstBelief',
@@ -1141,7 +1228,7 @@ knitFig(plotToDraw = 'exampleCIBER',
 
 ##### Explaining the plot title
 
-The title doubles as a legend: each higher-level determinants (called a 'target' in CIBER plots) is designated a color that is used in the plot. In this case, attitude is red and intention is blue. These colors are used in the right-hand panel of the plot (see below).
+The title doubles as a legend: each higher-level determinant (called a 'target' in CIBER plots) is designated a color that is used in the plot. In this case, attitude is red and intention is blue. These colors are used in the right-hand panel of the plot (see below).
 
 The title also shows the confidence interval (by default the 95% confidence interval) for the proportion of explained variance (or <sup>2</sup> for each target as explained by the (sub-) determinants in the plot (in this case, by the three beliefs).
 
@@ -1179,7 +1266,7 @@ The third belief is already held by most participants: the mean is between 5 and
 
 These are visualisations of the determinant structures of the behaviors in this Party Panel wave. The associations of the sub-determinants in each of these determinants with the overarching determinants and with intention will then be visualised using CIBER plots.
 
-```{r ciber-plot-generation, screenshot.force=TRUE}
+```{r ciber-plot-generation, screenshot.force=TRUE, message=FALSE, warning=FALSE}
 
 ###############################################################################
 ### For each behavior, process the determinant structure to add CIBER plots
@@ -1251,7 +1338,7 @@ for (currentDetStruct in detStruct) {
 
 This section contains CIBER plots to show the determinant relevance. These are organised based on the determinant structure; the headings and each figure's caption shows to which behavior and to which (sub)-determinants each CIBER plot pertains.
 
-```{r determinant-importance, results='asis', message=FALSE}
+```{r determinant-importance, results='asis', message=FALSE, warning=FALSE}
 
 singleQuestionEasyBarList <<- list();
 determinantDetStructList <<- list();
@@ -1263,6 +1350,12 @@ for (i in seq_along(detStruct)) {
     if ((!is.null(currentNode$scaleVarName)) &&
         (length(Get(currentNode$children, 'scaleVarName')) > 0) &&
         all(Get(currentNode$children, 'scaleVarName') %in% names(dat))) {
+      
+        sampleSize <-
+          sum(complete.cases(dat[, c(Get(currentNode$children,
+                                         'scaleVarName'),
+                                     currentNode$scaleVarName)]));
+      
         tmpCIBER <- 
           CIBER(data=dat,
                 determinants=Get(currentNode$children, 'scaleVarName'),
@@ -1295,10 +1388,12 @@ for (i in seq_along(detStruct)) {
         figHeight <- figWidth <- 1;
         drawPlot <- FALSE;
         plotToDraw <- "";
+        sampleSize <- NA;
       } else {
         figHeight <- 2.5;
         figWidth <- 8;
         drawPlot <- TRUE;
+        sampleSize <- sum(!is.na(dat[, currentNode$scaleVarName]));
         ### Bit messy; but store plot in parent environment for
         ### inclusion by knitr
         singleQuestionEasyBarList[[length(singleQuestionEasyBarList)+1]]  <<- 
@@ -1324,8 +1419,12 @@ for (i in seq_along(detStruct)) {
       figHeight <- attr(currentNode$determinantImportance, 'height');
       figWidth <- attr(currentNode$determinantImportance, 'width');
       drawPlot <- TRUE;
+      sampleSize <- sum(complete.cases(dat[, unlist(currentNode$varNames)]));
       plotToDraw <- paste0("detStruct[[", i, "]]$",
-                           vecTxt(currentNode$path[-1], delimiter="$", lastElements=0, useQuote="`"),
+                           vecTxt(currentNode$path[-1],
+                                  delimiter="$",
+                                  lastElements=0,
+                                  useQuote="`"),
                            "$determinantImportance");
       plotToDrawAsPlot <- currentNode$determinantImportance;
     }
@@ -1335,15 +1434,30 @@ for (i in seq_along(detStruct)) {
     figCaption <- toTitleCase(paste0(paste0(currentNode$path, collapse=" - ")));
 
     ### Feed to knitr for report
-    knitFig(plotToDraw = plotToDraw,
-            template = pp_knitFig_determinantTemplate,
-            figWidth = figWidth,
-            figHeight = figHeight,
-            figCaption = figCaption,
-            drawPlot = drawPlot,
-            chunkName = chunkName,
-            headerName = toTitleCase(headerName),
-            headerLevel = headerLevel);
+    if (exists('sampleSize') &&
+        !is.null(sampleSize) &&
+        !is.na(sampleSize)) {
+      knitFig(plotToDraw = plotToDraw,
+              template = pp_knitFig_determinantTemplate_sampleSize,
+              figWidth = figWidth,
+              figHeight = figHeight,
+              figCaption = figCaption,
+              drawPlot = drawPlot,
+              chunkName = chunkName,
+              headerName = toTitleCase(headerName),
+              headerLevel = headerLevel,
+              sampleSize = sampleSize);
+    } else {
+      knitFig(plotToDraw = plotToDraw,
+              template = pp_knitFig_determinantTemplate,
+              figWidth = figWidth,
+              figHeight = figHeight,
+              figCaption = figCaption,
+              drawPlot = drawPlot,
+              chunkName = chunkName,
+              headerName = toTitleCase(headerName),
+              headerLevel = headerLevel);
+    }
 
     #if (!is.null(currentNode$determinantImportance)) {
     if (drawPlot) {
@@ -1374,7 +1488,7 @@ cat("\n\n");
 
 ## Wave specific analyses
 
-```{r generic-wave-specific-analyses, results="asis", message=FALSE}
+```{r generic-wave-specific-analyses, results="asis", message=FALSE, warning=FALSE}
 
 for (currentVar in names(waveSpecificVariableList)) {
   
@@ -1433,12 +1547,16 @@ for (currentVar in names(waveSpecificVariableList)) {
           !is.null(waveSpecificVariableList[[currentVar]]$showPropPlot) &&
           waveSpecificVariableList[[currentVar]]$showPropPlot) {
         currentPlots[[length(currentPlots) + 1]] <-
-          ggProportionPlot(varVector,
+          ggProportionPlot(varVector[!is.na(varVector)],
                            subQuestions=currentVarNameList);
       }
       
-      if (waveSpecificVariableList[[currentVar]]$showFreq) {
-        pander(freq(varVector));
+      if (!is.null(waveSpecificVariableList[[currentVar]]$showFreq)
+            && waveSpecificVariableList[[currentVar]]$showFreq) {
+        cat("\n\n");
+        cat(kable(userfriendlyscience::freq(varVector)$dat),
+            sep="\n");
+        cat("\n\n");
       }
       
       if (waveSpecificVariableList[[currentVar]]$type == "open") {
@@ -1471,15 +1589,18 @@ for (currentVar in names(waveSpecificVariableList)) {
             (max(nchar(currentRightAnchors)) > 2)) {
           currentHasAnchors <- TRUE;
         }
+      } else {
+        currentSubQuestions <- NA;
       }
 
       ### Multiple response question
       if (waveSpecificVariableList[[currentVar]]$type == 'multi') {
-        if (waveSpecificVariableList[[currentVar]]$showFreq) {
+        if (!is.null(waveSpecificVariableList[[currentVar]]$showFreq)
+            && waveSpecificVariableList[[currentVar]]$showFreq) {
           cat0("\n\n");
           multiResponseResult <-
             multiResponse(dat, regex=waveSpecificVariableList[[currentVar]]$regex);
-          if (!is.null(currentSubQuestions)) {
+          if (!any(is.null(currentSubQuestions)) && !any(is.na(currentSubQuestions))) {
             multiResponseResult$Option <- c(currentSubQuestions, "Total");
           }
           pander(multiResponseResult);
@@ -1487,20 +1608,53 @@ for (currentVar in names(waveSpecificVariableList)) {
         }
       } else if (waveSpecificVariableList[[currentVar]]$type == "array") {
 
+        currentCleanLabels <-
+          labelDf$varLabels.cln[labelDf$varNames.cln %in% currentVarNameList];
+
+        ### Set pretty labels
+        currentVarLabels <-
+          ifelseObj(is.null(waveSpecificVariableList[[currentVar]]$labels),
+                    ifelseObj(is.na(currentSubQuestions),
+                              NULL,
+                              currentSubQuestions),
+                    waveSpecificVariableList[[currentVar]]$labels);
+        if (anyDuplicated(currentVarLabels) > 0) {
+          currentVarLabels <- NULL;
+        }
+
         if (!is.null(waveSpecificVariableList[[currentVar]]$showFreq)
             && waveSpecificVariableList[[currentVar]]$showFreq) {
           cat("\n\n");
           pander(multiVarFreq(dat,
                               items=currentVarNameList,
-                              labels = ifelseObj(is.null(waveSpecificVariableList[[currentVar]]$labels),
-                                                 NULL,
-                                                 waveSpecificVariableList[[currentVar]]$labels)));
+                              labels = currentVarLabels));
           cat("\n\n");
+        }
+        
+        ### Bar plot
+        if (!is.null(waveSpecificVariableList[[currentVar]]$showBarPlot)
+            && waveSpecificVariableList[[currentVar]]$showBarPlot) {
+          ### Remove character vectors
+          characterVectors <- unlist(lapply(dat[, currentVarNameList], is.character));
+          if (any(characterVectors)) {
+            currentVarNameList <- currentVarNameList[!characterVectors];
+          }
+          currentPlots[[length(currentPlots) + 1]] <-
+            ggEasyBar(dat,
+                      items=currentVarNameList,
+                      labels = currentVarLabels);
         }
         
         ### Diamond plot
         if (!is.null(waveSpecificVariableList[[currentVar]]$showDiamondPlot)
             && waveSpecificVariableList[[currentVar]]$showDiamondPlot) {
+          
+          ### Remove character vectors
+          characterVectors <- unlist(lapply(dat[, currentVarNameList], is.character));
+          if (any(characterVectors)) {
+            currentVarNameList <- currentVarNameList[!characterVectors];
+          }
+          
           if (currentHasAnchors) {
             currentPlots[[length(currentPlots) + 1]] <-
               biAxisDiamondPlot(dat, items=currentVarNameList,
@@ -1514,9 +1668,7 @@ for (currentVar in names(waveSpecificVariableList)) {
           } else {
             currentPlots[[length(currentPlots) + 1]] <-
               meansDiamondPlot(dat, items=currentVarNameList,
-                               labels = ifelseObj(is.null(waveSpecificVariableList[[currentVar]]$labels),
-                                                  NULL,
-                                                  waveSpecificVariableList[[currentVar]]$labels),
+                               labels = currentVarLabels,
                                decreasing=FALSE);
           }
         }
@@ -1524,29 +1676,42 @@ for (currentVar in names(waveSpecificVariableList)) {
         ### Ridgeline plot
         if (!is.null(waveSpecificVariableList[[currentVar]]$showRidgelinePlot)
             && waveSpecificVariableList[[currentVar]]$showRidgelinePlot) {
+          ### Remove character vectors
+          characterVectors <- unlist(lapply(dat[, currentVarNameList], is.character));
+          if (any(characterVectors)) {
+            currentVarNameList <- currentVarNameList[!characterVectors];
+          }
           currentPlots[[length(currentPlots) + 1]] <-
             ggEasyRidge(dat,
                         items=currentVarNameList,
-                        labels = ifelseObj(is.null(waveSpecificVariableList[[currentVar]]$labels),
-                                           NULL,
-                                           waveSpecificVariableList[[currentVar]]$labels));
+                        labels = currentVarLabels);
         }
         
-        ### Bar plot
-        if (!is.null(waveSpecificVariableList[[currentVar]]$showBarPlot)
-            && waveSpecificVariableList[[currentVar]]$showBarPlot) {
-          currentPlots[[length(currentPlots) + 1]] <-
-            ggEasyBar(dat,
-                      items=currentVarNameList,
-                      labels = ifelseObj(is.null(waveSpecificVariableList[[currentVar]]$labels),
-                                           NULL,
-                                           waveSpecificVariableList[[currentVar]]$labels));
-        }
-        
+        ### Associations
         if (!is.null(waveSpecificVariableList[[currentVar]]$assoc)
-            && waveSpecificVariableList[[currentVar]]$assoc) {
-          for (currentBehaviorIndex in seq_along(detStruct)) {
-            cat0("Here association with ", names(detStruct[[currentBehaviorIndex]]));
+            && (waveSpecificVariableList[[currentVar]]$assoc != FALSE) &&
+            length(waveSpecificVariableList[[currentVar]]$assoc > 0)) {
+          ### Remove character vectors
+          characterVectors <- unlist(lapply(dat[, currentVarNameList], is.character));
+          if (any(characterVectors)) {
+            currentVarNameList <- currentVarNameList[!characterVectors];
+          }
+          if (isTRUE(waveSpecificVariableList[[currentVar]]$assoc)) {
+            ### Show associations with all determinants
+            for (currentBehaviorIndex in seq_along(detStruct)) {
+              cat0("Here association with ", names(detStruct[[currentBehaviorIndex]]));
+            }
+          } else {
+            ### These are regular expressions; only show associations
+            ### with those variables
+            for (currentAssocVarRegex in waveSpecificVariableList[[currentVar]]$assoc) {
+              assocVarList <- grep(currentAssocVarRegex, names(dat), value=TRUE);
+              currentPlots[[length(currentPlots) + 1]] <-
+                userfriendlyscience::associationsDiamondPlot(dat,
+                                                             covariates=currentVarNameList,
+                                                             criteria=assocVarList,
+                                                             labels = currentVarLabels);
+            }
           }
         }
 
@@ -1615,7 +1780,7 @@ for (currentVar in names(waveSpecificVariableList)) {
 
 We aim to have an infographic made for each Party Panel wave, to present some of the most important findings to the participants and members of the general public. This tab contains the information sent to the designer for each infographic.
 
-```{r generic-infographic, results="asis"}
+```{r generic-infographic, message=FALSE, warning=FALSE, results="asis"}
 
 pandoc.header("Age and gender", level=3);
 
@@ -1629,11 +1794,11 @@ pandoc.p(paste("The mode of age (i.e. the most common age) is ",
 
 pandoc.header("Gender", level=4);
 
-pander(freq(dat$gender));
+kable(userfriendlyscience::freq(dat$gender)$dat);
 
 pandoc.header("Education level", level=3);
 
-pander(freq(dat$education));
+kable(userfriendlyscience::freq(dat$education)$dat);
 
 if (!is.null(participantOrigins)) {
   pandoc.header("Geographical distribution", level=3);
@@ -1681,13 +1846,13 @@ A paper explaining the plots we use in these reports to show determinant relevan
 
 #### Data cleaning output
 
-```{r data-cleaning-output, results='asis'}
+```{r data-cleaning-output, results='asis', message=FALSE, warning=FALSE}
 cat(dataCleaningOutput, collapse="\n\n", sep="\n\n");
 ```
 
 #### Class correction output
 
-```{r class-correction-output, results='asis'}
+```{r class-correction-output, results='asis', message=FALSE, warning=FALSE}
 cat("\n\n", classCorrectionOutput, "\n\n");
 ```
 
