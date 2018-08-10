@@ -49,6 +49,8 @@ categoricalQuestions <- params$categoricalQuestions;
 
 #source("B:/Data/statistics/R/library/update-UFS.R");
 require('userfriendlyscience', quietly=TRUE);
+safeRequire('ufs');          ### New userfriendlyscience
+safeRequire('behaviorchange');  ### For determinant study analyses
 safeRequire('grid');         ### To manipulate graphics
 safeRequire('gridExtra');    ### To manipulate graphics
 safeRequire('ggplot2');      ### To draw and edit plots
@@ -1014,11 +1016,13 @@ ggSave(plot = genderBar,
 ### Age
 ########################################################################
 
-pandoc.header("Age", 3);
+cat("\n\n### Age\n\n");
 
 agePowerHist <- powerHist(dat$age,
                           xLabel = "Age")$plot + xlim(0, 80);
 ageDescr <- userfriendlyscience::descr(round(dat$age));
+
+pander(ageDescr);
 
 knitFig(plotToDraw = agePowerHist,
         figWidth = defaultFigWidth,
@@ -1033,15 +1037,17 @@ freqMeansDiamondPlots <- list();
 freqRidgelinePlots <- list();
 
 for (currentFreqVar in names(frequencyVarNames)) {
-  pandoc.header(currentFreqVar, 3);
+  
+  cat0("\n\n### ", currentFreqVar, "\n\n");
+  
   if (length(frequencyVarNames[[currentFreqVar]]) == 0) {
     stop("No variables matching regex '", currentFreqVar, "'.");
   } else if (all(unlist(frequencyVarNames[[currentFreqVar]]) %in% names(dat))) {
     
     ### Diamond plots
     freqMeansDiamondPlots[[currentFreqVar]] <-
-      meansDiamondPlot(dat, items=unlist(frequencyVarNames[[currentFreqVar]]));
-    #print(userfriendlyscience::freqMeansDiamondPlots[[currentFreqVar]]);
+      meansDiamondPlot(dat,
+                       items=unlist(frequencyVarNames[[currentFreqVar]]));
 
     freqRidgelinePlots[[currentFreqVar]] <-
       ggEasyRidge(dat,
@@ -1052,33 +1058,69 @@ for (currentFreqVar in names(frequencyVarNames)) {
 
     pandoc.header("Diamond and ridgeline plots", 4);
     
+    knitFig(plotToDraw = freqMeansDiamondPlots[[currentFreqVar]],
+            figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
+            figHeight = defaultFigHeight,
+            figCaption = paste0("Diamond plot for ", currentFreqVar, "."));
+    
+    ggSave(plot = freqMeansDiamondPlots[[currentFreqVar]],
+           file = file.path(workingPath, paste0(currentFreqVar, "-(diamond).png")),
+           height=2.54 * defaultFigHeight, width=2 * 2.54 * defaultFigWidth);
+    
     knitFig(plotToDraw = freqRidgelinePlots[[currentFreqVar]],
             figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
             figHeight = defaultFigHeight,
             figCaption = paste0("Ridgeline plot for ", currentFreqVar, "."));
     
     ggSave(plot = freqRidgelinePlots[[currentFreqVar]],
-           file = file.path(workingPath, paste0(currentFreqVar, " (ridgeline).png")),
+           file = file.path(workingPath, paste0(currentFreqVar, "-(ridgeline).png")),
            height=2.54 * defaultFigHeight, width=2 * 2.54 * defaultFigWidth);
 
-    pandoc.header("Frequencies and easybarplots", 4);
-    
-    multiVarFreq(dat, items=frequencyCategoryVarNames$goingOutFreq, sortByMean=FALSE);
+    cat("\n\n#### Frequencies and easybarplots {.tabset}\n\n");
 
-    ggEasyBar(dat, items=frequencyCategoryVarNames$goingOutFreq, sortByMean=FALSE);
+    cat("\n\n##### Categories\n\n");
+
+    if (length(frequencyCategoryVarNames[[currentFreqVar]]) == 1) {
+      print(kable(userfriendlyscience::freq(dat[, frequencyCategoryVarNames[[currentFreqVar]]])$dat));
+    } else {
+      print(kable(multiVarFreq(dat, items=frequencyCategoryVarNames[[currentFreqVar]],
+                               sortByMean=FALSE)));
+    }
     
+    knitFig(ggEasyBar(dat,
+                      items=frequencyCategoryVarNames[[currentFreqVar]],
+                      sortByMean=FALSE),
+            figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
+            figHeight = defaultFigHeight,
+            figCaption = paste0("EasyBar plot for ", currentFreqVar, "."));
+    
+    cat("\n\n##### Raw\n\n");
+
+    if (length(frequencyVarNames[[currentFreqVar]]) == 1) {
+      print(kable(userfriendlyscience::freq(dat[, frequencyVarNames[[currentFreqVar]]])$dat));
+    } else {
+      print(kable(multiVarFreq(dat, items=frequencyVarNames[[currentFreqVar]],
+                               sortByMean=FALSE)));
+    }
+    
+    knitFig(ggEasyBar(dat,
+                      items=frequencyVarNames[[currentFreqVar]],
+                      sortByMean=FALSE),
+            figWidth = min(c(2*defaultFigWidth, maxFigWidth)),
+            figHeight = defaultFigHeight,
+            figCaption = paste0("EasyBar plot for ", currentFreqVar, "."));
+
   } else {
     stop("Not all variables matching regex '", currentFreqVar, "' exist in dataframe.");
   }
 }
-
-pander(ageDescr);
 
 ########################################################################
 ### Sexual preference
 ########################################################################
 
 if ('sexualPreference' %in% names(dat)) {
+  cat("\n\n### Sexual preference\n\n");
   kable(userfriendlyscience::freq(dat$sexualPreference)$dat);
 }
 
@@ -1199,21 +1241,21 @@ exampleData[exampleData<1] <- 1;
 exampleData[exampleData>7] <- 7;
 
 exampleCIBER <- 
-  CIBER(exampleData,
-        determinants=c('firstBelief',
-                       'secondBelief',
-                       'thirdBelief'),
-        subQuestions=c('A determinant study provides ...\ninsight into why people\nexhibit the target behavior.',
-                       'The effect of an intervention ...\non whether the right\ndeterminants are targeted.',
-                       'Interventions that are based on\ndeterminant studies are, because of that, ...'),
-        leftAnchors=c("Absolutely\nno",
-                      "Does not\ndepend",
-                      "Less\neffective"),
-        rightAnchors=c("A lot\nof",
-                       "Depends\na lot",
-                       "More\neffective"),,
-        targets=c('attitude', 'intention'),
-        drawPlot = FALSE);
+  behaviorchange::CIBER(exampleData,
+                        determinants=c('firstBelief',
+                                       'secondBelief',
+                                       'thirdBelief'),
+                        subQuestions=c('A determinant study provides ...\ninsight into why people\nexhibit the target behavior.',
+                                       'The effect of an intervention ...\non whether the right\ndeterminants are targeted.',
+                                       'Interventions that are based on\ndeterminant studies are, because of that, ...'),
+                        leftAnchors=c("Absolutely\nno",
+                                      "Does not\ndepend",
+                                      "Less\neffective"),
+                        rightAnchors=c("A lot\nof",
+                                       "Depends\na lot",
+                                       "More\neffective"),,
+                        targets=c('attitude', 'intention'),
+                        drawPlot = FALSE);
 
 knitFig(plotToDraw = 'exampleCIBER',
         template = pp_knitFig_determinantTemplate,
@@ -1273,8 +1315,10 @@ These are visualisations of the determinant structures of the behaviors in this 
 ###############################################################################
 
 for (currentDetStruct in detStruct) {
+
   ### Add determinant importance plots
-  detStructCIBER(currentDetStruct, dat=dat);
+  behaviorchange::detStructCIBER(currentDetStruct,
+                                 data=dat);
 } 
 
 ### screenshot.force = TRUE
@@ -1357,12 +1401,12 @@ for (i in seq_along(detStruct)) {
                                      currentNode$scaleVarName)]));
       
         tmpCIBER <- 
-          CIBER(data=dat,
-                determinants=Get(currentNode$children, 'scaleVarName'),
-                fullColorRange=c(1, 7),
-                targets=currentNode$scaleVarName,
-                xbreaks=1:7,
-                drawPlot=FALSE);
+          behaviorchange::CIBER(data=dat,
+                                determinants=Get(currentNode$children, 'scaleVarName'),
+                                fullColorRange=c(1, 7),
+                                targets=currentNode$scaleVarName,
+                                xbreaks=1:7,
+                                drawPlot=FALSE);
         figHeight <- 2.5 + attr(tmpCIBER, 'height');
         figWidth <- attr(tmpCIBER, 'width');
         drawPlot <- TRUE;
@@ -1458,7 +1502,37 @@ for (i in seq_along(detStruct)) {
               headerName = toTitleCase(headerName),
               headerLevel = headerLevel);
     }
-
+    # 
+    # cat0("\n\n",
+    #     repStr("#", headerLevel+1),
+    #     " Raw data {.tabset}",
+    #     "\n\n",
+    #     repStr("#", headerLevel+2),
+    #     " Overview\n\n",
+    #     "Click the tabs to the right for the raw data.\n\n");
+    # 
+    # cat0("\n\n",
+    #     repStr("#", headerLevel+2),
+    #     " Raw frequencies\n\n");
+    # 
+    # tmpMultiVarFreq <- multiVarFreq(dat, unlist(currentNode$varNames));
+    # 
+    # pander(tmpMultiVarFreq);
+    # 
+    # cat0("\n\n",
+    #     repStr("#", headerLevel+2),
+    #     " Percentages\n\n");
+    # 
+    # pander(apply(tmpMultiVarFreq,
+    #              2,
+    #              function(x)
+    #                return(x/rowSums(tmpMultiVarFreq,
+    #                                 na.rm=TRUE))
+    #              )
+    #        );
+    # 
+    # cat("\n\n");
+    # 
     #if (!is.null(currentNode$determinantImportance)) {
     if (drawPlot) {
       ### Save to disk for other uses
@@ -1719,13 +1793,13 @@ for (currentVar in names(waveSpecificVariableList)) {
 
     } ### End of if more than one variable in this set
 
-    ### For debugging
+    # ## For debugging
     # message(paste0("\n\n",
     #                currentVar,
     #                "\n\n",
     #                class(currentPlots[[1]]),
     #                "\n\n"));
-    
+
     ### Show the plot(s)
     if (length(currentPlots) > 0) {
       if (!is.null(waveSpecificVariableList[[currentVar]]$combinePlots) &&
@@ -1800,7 +1874,7 @@ pandoc.header("Education level", level=3);
 
 kable(userfriendlyscience::freq(dat$education)$dat);
 
-if (!is.null(participantOrigins)) {
+if (exists('participantOrigins') && !is.null(participantOrigins)) {
   pandoc.header("Geographical distribution", level=3);
   knitFig(plotToDraw = participantOrigins,
           figWidth = 16,
